@@ -46,6 +46,26 @@ export default function Profile() {
     vipExpiry: 0,
   };
 
+  const handleCopy = (text: string) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      alert("Copied: " + text);
+    } else {
+      // Fallback
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        alert("Copied: " + text);
+      } catch (err) {
+        console.error('Failed to copy', err);
+      }
+      document.body.removeChild(textArea);
+    }
+  };
+
   const downloadPDFSummary = async () => {
     if (!user) return;
     try {
@@ -85,7 +105,22 @@ export default function Profile() {
         });
       }
 
-      doc.save("VApp_Summary.pdf");
+      const blob = doc.output("blob");
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "VApp_Summary.pdf";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+      
+      if ((window as any).Telegram?.WebApp?.platform) {
+         // Also provide a way for Telegram users to see something if download fails
+         alert("PDF generation complete. If it didn't download automatically, your device might block it inside Telegram.");
+      }
     } catch (e) {
       console.error("Error generating PDF:", e);
       alert("Failed to generate PDF summary.");
@@ -118,7 +153,11 @@ export default function Profile() {
 
         <div className="w-24 h-24 rounded-full border-[4px] border-white/20 overflow-hidden relative shadow-[0_8px_16px_rgba(0,0,0,0.2)] flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 mb-4 z-10">
           <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
-          <User className="w-12 h-12 text-white drop-shadow-md" />
+          {displayUser.photoUrl ? (
+             <img src={displayUser.photoUrl} alt="Profile" className="w-full h-full object-cover" />
+          ) : (
+             <User className="w-12 h-12 text-white drop-shadow-md" />
+          )}
         </div>
 
         <div className="z-10 flex flex-col items-center">
@@ -126,19 +165,26 @@ export default function Profile() {
             {displayUser.fullName || displayUser.username}
           </h2>
 
-          <div className="flex items-center space-x-1.5 bg-white/5 px-3 py-1 rounded-xl border border-white/10 mb-2">
+          <div 
+            onClick={() => handleCopy(displayUser.uid)}
+            className="flex items-center space-x-1.5 bg-white/5 px-3 py-1 rounded-xl border border-white/10 mb-2 cursor-pointer hover:bg-white/10 transition-colors"
+          >
             <span className="opacity-70 text-gray-300 text-xs font-medium">
               ID:
             </span>
             <span className="text-blue-200 text-sm font-bold tracking-wider">
               {displayUser.uid}
             </span>
-            <Copy className="w-3.5 h-3.5 cursor-pointer text-gray-400 hover:text-white transition-colors ml-1" />
+            <Copy className="w-3.5 h-3.5 text-gray-400" />
           </div>
 
-          <span className="text-purple-200 font-medium text-sm mb-3">
+          <span 
+            onClick={() => handleCopy(displayUser.telegramId || displayUser.username)}
+            className="text-purple-200 font-medium text-sm mb-3 cursor-pointer hover:text-white transition-colors flex items-center space-x-1"
+          >
             <span className="opacity-70 mr-0.5">@</span>
             {displayUser.telegramId || displayUser.username}
+            <Copy className="w-3 h-3 text-purple-300 ml-1" />
           </span>
 
           {displayUser.isVip &&

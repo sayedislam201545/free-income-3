@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuthStore } from "../store/useAuthStore";
+import { useAdTracker } from "../hooks/useAdTracker";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { playSound } from "../lib/sounds";
@@ -96,6 +97,36 @@ export default function Dashboard() {
     },
   ];
 
+  const { startTracking, isTracking, checkCompletion, timeRemaining, cancelTracking } = useAdTracker(async () => {
+    const { user: currentUser } = useAuthStore.getState();
+    if (currentUser) {
+      const { increment, updateDoc, doc, addDoc, collection } = await import("firebase/firestore");
+      await updateDoc(doc(db, "users", currentUser.uid), { 
+        vaBalance: increment(bonusAdReward)
+      });
+      
+      await addDoc(collection(db, "task_history"), {
+        userId: currentUser.uid,
+        taskId: "slider_bonus_ad",
+        reward: bonusAdReward,
+        completedAt: Date.now(),
+      });
+      await addDoc(collection(db, "transactions"), {
+        userId: currentUser.uid,
+        type: "bonus",
+        amount: bonusAdReward,
+        status: "completed",
+        createdAt: Date.now(),
+        note: "Slider Bonus Ad",
+      });
+      
+      playSound("reward");
+      setBonusModalState({ show: true, type: "success", reward: bonusAdReward });
+    }
+  }, (timeSpent) => {
+    setBonusModalState({ show: true, type: "early_exit", timeSpent, remaining: 15 - Math.floor(timeSpent) });
+  });
+
   useEffect(() => {
     if (showBonusModal || isWatchingBonusAd) return;
     const timer = setInterval(() => {
@@ -125,10 +156,7 @@ export default function Dashboard() {
       if (window.show_9955574) {
         // @ts-ignore
         window.show_9955574();
-      } else {
-        window.open('https://google.com', '_blank'); // fallback
       }
-      
       setShowBonusModal(false);
       const { user: currentUser } = useAuthStore.getState();
       if (currentUser) {
@@ -453,12 +481,21 @@ export default function Dashboard() {
               </p>
 
               <div className="w-full flex flex-col space-y-3 relative z-10">
+                {isTracking ? (
+                <button
+                  onClick={checkCompletion}
+                  className="w-full py-4 bg-gradient-to-r from-blue-500 to-blue-400 text-white rounded-2xl font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95"
+                >
+                  Verify Ad
+                </button>
+              ) : (
                 <button
                   onClick={startBonusAd}
                   className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-2xl font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95"
                 >
                   Claim Reward
                 </button>
+              )}
                 <button
                   onClick={() => setShowBonusModal(false)}
                   className="w-full py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold hover:bg-gray-200 transition-colors active:scale-95"
@@ -509,7 +546,7 @@ export default function Dashboard() {
                   </>
                 ) : (
                   <>
-                    <p className="mb-2 text-red-600 font-bold">আপনি ১৫ সেকেন্ড সম্পূর্ণ দেখেননি।</p>
+                    <p className="mb-2 text-red-600 font-bold">আপনি ১৫ সেকেন্ড এর আগেই বের হয়ে এসেছেন তাই আপবার এড টাকে কাউন্ড করা হয় নাই!</p>
                     <p>আপনি দেখেছেন: <span className="font-bold text-gray-800">{bonusModalState.timeSpent}</span> সেকেন্ড</p>
                     <p>বাকি ছিল: <span className="font-bold text-gray-800">{bonusModalState.remaining}</span> সেকেন্ড</p>
                     <p className="mt-2 text-xs">তাই আপনি কোনো Coin পাননি।</p>

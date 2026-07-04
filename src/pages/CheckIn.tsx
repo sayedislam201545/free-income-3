@@ -1,6 +1,7 @@
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
+import { useAdTracker } from "../hooks/useAdTracker";
 import { useState, useEffect } from "react";
 import { playSound } from "../lib/sounds";
 import { collection, query, where, getDocs, addDoc } from "firebase/firestore";
@@ -103,52 +104,37 @@ export default function CheckIn() {
       return () => clearInterval(interval);
   }, [timeRemaining]);
 
+    const { startTracking, isTracking, timeRemaining: adTimeRemaining, cancelTracking } = useAdTracker(() => {
+      // Reward logic
+      (async () => {
+          setIsLoading(false);
+          setIsCheckedIn(true);
+          setTimeRemaining(24 * 60 * 60); // 24 hours
+          setStreak(streak + 1);
+          
+          const isVipUser = user?.isVip && user?.vipExpiry && user?.vipExpiry > Date.now();
+          const baseReward = 30;
+          const reward = isVipUser ? Math.floor(baseReward * 1.05) : baseReward;
+
+          const { increment, updateDoc, doc } = await import("firebase/firestore");
+          await updateDoc(doc(db, 'users', user!.uid), {
+              vaBalance: increment(reward)
+          });
+          
+          
+      })();
+  }, () => {
+      setIsLoading(false);
+  });
+
   const handleCheckIn = () => {
       if (isCheckedIn || !user) return;
       
       if (window.show_9955574) {
           window.show_9955574();
       }
-
       setIsLoading(true);
-      
-      // Directly check in without long timeout.
-      (async () => {
-          setIsLoading(false);
-          setIsCheckedIn(true);
-          setTimeRemaining(24 * 60 * 60); // 24 hours
-          setStreak(streak + 1);
-
-          const isVipUser = user.isVip && user.vipExpiry && user.vipExpiry > Date.now();
-          const baseReward = 30;
-          const reward = isVipUser ? Math.floor(baseReward * 1.05) : baseReward;
-
-          // 1. Give reward using increment to avoid stale state
-          const { increment, updateDoc, doc } = await import("firebase/firestore");
-          await updateDoc(doc(db, 'users', user.uid), {
-              vaBalance: increment(reward)
-          });
-          
-          // 2. Log in history
-          await addDoc(collection(db, 'daily_bonus_history'), {
-              userId: user.uid.toString(),
-              date: Date.now(),
-              amount: reward
-          });
-
-          // 3. Log transaction
-          await addDoc(collection(db, 'transactions'), {
-              userId: user.uid.toString(),
-              type: 'bonus',
-              amount: reward,
-              status: 'completed',
-              createdAt: Date.now(),
-              note: 'Daily Check-in Bonus' + (isVipUser ? ' (VIP +5%)' : '')
-          });
-
-          playSound('reward');
-          alert(`Checked in successfully! You received ${reward} Coins.`);
-      })();
+      startTracking(15);
   };
 
   const formatTime = (seconds: number) => {
@@ -212,12 +198,21 @@ export default function CheckIn() {
             )})}
         </div>
 
-        <button 
-           onClick={handleCheckIn}
-           disabled={isCheckedIn || isLoading}
-           className={`w-full py-4 rounded-full font-bold text-[15px] shadow-[0_6px_0_rgba(0,0,0,0.1)] transition-all active:translate-y-[4px] active:shadow-[0_2px_0_rgba(0,0,0,0.1)] ${isCheckedIn ? 'bg-gray-100 text-gray-400 border-2 border-gray-200 shadow-none active:translate-y-0' : 'bg-gradient-to-b from-crypto-primary to-[#6A3ACC] text-white border border-purple-800'}`}>
-            {isLoading ? "Please wait..." : isCheckedIn ? `Claim again in ${formatTime(timeRemaining || 0)}` : "Check in now"}
-        </button>
+        {isTracking ? (
+          <button
+            onClick={cancelTracking}
+            className="w-full py-4 rounded-full font-bold text-[15px] shadow-[0_6px_0_rgba(0,0,0,0.1)] transition-all active:translate-y-[4px] active:shadow-[0_2px_0_rgba(0,0,0,0.1)] bg-gradient-to-b from-gray-400 to-gray-500 text-white border border-gray-600"
+          >
+            CANCEL (WAIT {adTimeRemaining}S)
+          </button>
+        ) : (
+          <button
+             onClick={handleCheckIn}
+             disabled={isCheckedIn || isLoading}
+             className={`w-full py-4 rounded-full font-bold text-[15px] shadow-[0_6px_0_rgba(0,0,0,0.1)] transition-all active:translate-y-[4px] active:shadow-[0_2px_0_rgba(0,0,0,0.1)] ${isCheckedIn ? 'bg-gray-100 text-gray-400 border-2 border-gray-200 shadow-none active:translate-y-0' : 'bg-gradient-to-b from-crypto-primary to-[#6A3ACC] text-white border border-purple-800'}`}>
+              {isLoading ? "Please wait..." : isCheckedIn ? `Claim again in ${formatTime(timeRemaining || 0)}` : "Check in now"}
+          </button>
+        )}
       </div>
 
       <div className="bg-white/80 backdrop-blur-xl border border-white rounded-[32px] p-6 shadow-sm relative z-10">

@@ -10,8 +10,10 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
+import { useAdTracker } from "../hooks/useAdTracker";
 import { collection, doc, getDoc, addDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { db, storage } from "../lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { playSound } from "../lib/sounds";
 import PremiumBackButton from "../components/PremiumBackButton";
 
@@ -21,47 +23,6 @@ export default function TaskDetail() {
   const user = useAuthStore((state) => state.user);
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
-  // Visit Task States
-  const [isVisiting, setIsVisiting] = useState(false);
-  const [visitTimer, setVisitTimer] = useState(30);
-
-  // App Reg States
-  const [showSubmitForm, setShowSubmitForm] = useState(false);
-  const [note, setNote] = useState("");
-  const [profileLink, setProfileLink] = useState("");
-  const [photos, setPhotos] = useState<string[]>([]); // mock photo urls for now
-
-  useEffect(() => {
-    const fetchTask = async () => {
-      if (!id) return;
-      try {
-        const taskSnap = await getDoc(doc(db, "tasks", id));
-        if (taskSnap.exists()) {
-          setTask({ id: taskSnap.id, ...taskSnap.data() });
-        }
-      } catch (err) {
-        console.error("Failed to fetch task:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTask();
-  }, [id]);
-
-  // Visit timer logic
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isVisiting && visitTimer > 0) {
-      interval = setInterval(() => {
-        setVisitTimer((prev) => prev - 1);
-      }, 1000);
-    } else if (isVisiting && visitTimer === 0) {
-      handleVisitComplete();
-    }
-    return () => clearInterval(interval);
-  }, [isVisiting, visitTimer]);
-
   const [visitModalState, setVisitModalState] = useState<{
     show: boolean;
     type: "success" | "early_exit";
@@ -69,9 +30,46 @@ export default function TaskDetail() {
     timeSpent?: number;
     remaining?: number;
   }>({ show: false, type: "success" });
+  
+  const [showSubmitForm, setShowSubmitForm] = useState(false);
+  const [screenshots, setScreenshots] = useState<(File | null)[]>([null, null, null]);
+  const [note, setNote] = useState("");
+  const [profileLink, setProfileLink] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    const fetchTask = async () => {
+      if (!id) return;
+      try {
+        const docRef = doc(db, "tasks", id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setTask({ id: docSnap.id, ...docSnap.data() });
+        }
+      } catch (error) {
+        console.error("Error fetching task:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTask();
+  }, [id]);
+
+
+  // Visit Task States
+  const { startTracking, isTracking, checkCompletion, timeRemaining, cancelTracking } = useAdTracker(() => {
+    handleVisitComplete();
+  }, (timeSpent) => {
+    setVisitModalState({
+      show: true,
+      type: "early_exit",
+      timeSpent: Math.floor(timeSpent),
+      remaining: 35 - Math.floor(timeSpent)
+    });
+  });
 
   const handleVisitComplete = async () => {
-    setIsVisiting(false);
+    
     const { user: currentUser } = useAuthStore.getState();
     const reward = task?.reward || 50;
     if (currentUser) {
@@ -100,18 +98,10 @@ export default function TaskDetail() {
     setVisitModalState({ show: true, type: "success", reward });
   };
 
-  const closeVisitEarly = () => {
-    setIsVisiting(false);
-    const timeSpent = 30 - visitTimer;
-    alert(`আপনি ৩০ সেকেন্ড এর ভিতরে ছিলেন ${timeSpent} সেকেন্ড। আপনি সম্পূর্ণ ৩০ সেকেন্ড থাকেন নাই তাই কোনো রকম কয়েন পাবেন না।`);
-    setVisitTimer(30); // reset
-  };
-
   const handleStartVisit = () => {
-    // Open the target link in background or we simulate the visit by showing an overlay with timer
     window.open(task?.targetUrl || "https://google.com", "_blank");
-    setVisitTimer(35); // Random between 30 and 40
-    setIsVisiting(true);
+    const randTime = Math.floor(Math.random() * 11) + 30; // 30 to 40
+    startTracking(randTime);
   };
 
   const handleAppSubmit = async () => {
@@ -119,30 +109,46 @@ export default function TaskDetail() {
       alert("Please fill all fields.");
       return;
     }
-
+    if (!user || !user.uid) {
+      alert("Please login first.");
+      return;
+    }
+    setIsUploading(true);
     try {
+      const imageUrls: string[] = [];
+      for (let i = 0; i < screenshots.length; i++) {
+        const file = screenshots[i];
+        if (file) {
+          const storageRef = ref(storage, `submissions/${user.uid}/${Date.now()}_${i}`);
+          await uploadBytes(storageRef, file);
+          const url = await getDownloadURL(storageRef);
+          imageUrls.push(url);
+        }
+      }
+
       await addDoc(collection(db, "task_submissions"), {
-        userId: user?.uid || "unknown",
-        username: user?.username || user?.firstName || 'User',
+        userId: user.uid,
+        username: user.username || user.firstName || 'User',
         taskId: task?.id || "unknown",
         taskTitle: task?.title || "Unknown Task",
         reward: task?.reward || 0,
         note,
         profileLink,
+        imageUrls,
         status: "pending",
         createdAt: new Date().toISOString()
       });
-
-      // Still open telegram if admin wants
-      const text = `Task Submission:\nNote: ${note}\nProfile: ${profileLink}\nUser: ${user?.username}`;
-      const encoded = encodeURIComponent(text);
-      window.open(`https://t.me/your_admin_bot?start=${encoded}`, "_blank");
-      
       alert("Submission sent successfully! It is now pending admin approval.");
       navigate(-1);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Failed to submit task.");
+      if (err.code === "storage/unauthorized") {
+         alert("Storage permission denied. Admin needs to allow uploads in Firebase Rules.");
+      } else {
+         alert("Failed to submit task. Please try again.");
+      }
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -223,12 +229,12 @@ export default function TaskDetail() {
           )}
 
           {category === "visit" && (
-            isVisiting ? (
+            isTracking ? (
               <button
-                onClick={closeVisitEarly}
+                onClick={cancelTracking}
                 className="w-full bg-gradient-to-b from-gray-400 to-gray-500 text-white py-4 rounded-2xl font-black text-sm tracking-wide shadow-[0_6px_0_rgb(107,114,128)] flex items-center justify-center space-x-2 transition-transform active:translate-y-[6px] active:shadow-[0_0px_0_rgb(107,114,128)]"
               >
-                <span>⏳ PLEASE WAIT... {visitTimer}S</span>
+                <span>⏳ PLEASE WAIT... {timeRemaining}S</span>
               </button>
             ) : (
               <button
@@ -258,18 +264,34 @@ export default function TaskDetail() {
           <div className="bg-white rounded-[32px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-2 border-gray-100 mt-6 animate-in fade-in slide-in-from-bottom-8 relative overflow-hidden">
             <h3 className="font-black text-xl text-[#2C334A] tracking-tight mb-6">Submit Your Proof</h3>
 
-            <div className="mb-4">
+                        <div className="mb-4">
               <label className="block text-xs font-bold text-gray-600 mb-1">
                 Upload Screenshots (Max 3)
               </label>
               <div className="flex space-x-2">
-                {[1, 2, 3].map((i) => (
-                  <div
+                {[0, 1, 2].map((i) => (
+                  <label
                     key={i}
-                    className="flex-1 aspect-square bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="flex-1 aspect-square bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 transition-colors relative overflow-hidden"
                   >
-                    <ImageIcon className="w-6 h-6" />
-                  </div>
+                    {screenshots[i] ? (
+                      <img src={URL.createObjectURL(screenshots[i])} className="w-full h-full object-cover" alt="Preview" />
+                    ) : (
+                      <ImageIcon className="w-6 h-6" />
+                    )}
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          const newFiles = [...screenshots];
+                          newFiles[i] = e.target.files[0];
+                          setScreenshots(newFiles);
+                        }
+                      }} 
+                    />
+                  </label>
                 ))}
               </div>
             </div>
@@ -301,10 +323,11 @@ export default function TaskDetail() {
             </div>
 
             <button
+              disabled={isUploading}
               onClick={handleAppSubmit}
-              className="w-full py-4 bg-green-600 text-white rounded-xl font-bold shadow-md hover:bg-green-700 active:scale-95 transition-all"
+              className={`w-full py-4 ${isUploading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700 active:scale-95'} text-white rounded-xl font-bold shadow-md transition-all`}
             >
-              Submit to Admin
+              {isUploading ? 'Uploading & Submitting...' : 'Submit to Admin'}
             </button>
           </div>
         )}
@@ -350,7 +373,7 @@ export default function TaskDetail() {
                   </>
                 ) : (
                   <>
-                    <p className="mb-2 text-red-600 font-bold">আপনি নির্ধারিত সময় সম্পূর্ণ করেননি।</p>
+                    <p className="mb-2 text-red-600 font-bold">আপনি নির্ধারিত সময়ের আগেই বের হয়ে এসেছেন তাই আপনার টাস্কটিকে কাউন্ড করা হয় নাই!</p>
                     <p>আপনি ছিলেন: <span className="font-bold text-gray-800">{visitModalState.timeSpent}</span> সেকেন্ড</p>
                     <p>বাকি ছিল: <span className="font-bold text-gray-800">{visitModalState.remaining}</span> সেকেন্ড</p>
                     <p className="mt-2 text-xs">তাই কোনো Coin প্রদান করা হয়নি।</p>

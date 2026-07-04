@@ -11,6 +11,7 @@ interface User {
   firstName?: string;
   lastName?: string;
   email?: string;
+  photoUrl?: string;
   phoneNumber?: string;
   phone?: string;
   createdAt?: string;

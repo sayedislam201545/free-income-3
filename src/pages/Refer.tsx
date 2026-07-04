@@ -1,6 +1,8 @@
+import { db } from "../lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 import { Gift, Users, Coins, Share2, Copy, AlertCircle } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PremiumBackButton from "../components/PremiumBackButton";
 import EmptyState from "../components/EmptyState";
@@ -10,11 +12,30 @@ export default function Refer() {
   const navigate = useNavigate();
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedTgLink, setCopiedTgLink] = useState(false);
+  const [botSetting, setBotSetting] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchBotSetting = async () => {
+      try {
+        const snap = await getDoc(doc(db, "settings", "bot_setting"));
+        if (snap.exists()) {
+          setBotSetting(snap.data());
+        }
+      } catch(e) {}
+    };
+    fetchBotSetting();
+  }, []);
 
   const inviteCode = user?.uid
     ? `R_${user.uid.substring(0, 6).toUpperCase()}`
     : "R_206474";
-  const inviteLink = `https://${window.location.hostname}/register?ref=${inviteCode}`;
+  const inviteLink = botSetting?.botHostingLink 
+    ? (botSetting.botHostingLink.endsWith('/') ? `${botSetting.botHostingLink}register?ref=${inviteCode}` : `${botSetting.botHostingLink}/register?ref=${inviteCode}`)
+    : `https://${window.location.hostname}/register?ref=${inviteCode}`;
+  
+  const tgInviteLink = botSetting?.botUsername ? `https://t.me/${botSetting.botUsername}?start=${inviteCode}` : '';
+    
 
   const isVipUser = user?.isVip && user?.vipExpiry && user?.vipExpiry > Date.now();
   const rewardAmount = isVipUser ? 275 : 250;
@@ -29,6 +50,14 @@ export default function Refer() {
     navigator.clipboard.writeText(inviteLink);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
+  };
+  
+  const handleCopyTgLink = () => {
+    if(tgInviteLink) {
+        navigator.clipboard.writeText(tgInviteLink);
+        setCopiedTgLink(true);
+        setTimeout(() => setCopiedTgLink(false), 2000);
+    }
   };
 
   const handleBack = () => {
@@ -160,7 +189,30 @@ export default function Refer() {
             </div>
           </div>
 
-          <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl py-3.5 text-xs font-bold tracking-widest uppercase flex items-center justify-center shadow-lg shadow-purple-500/20 active:translate-y-0.5 transition-transform">
+          {tgInviteLink && (
+          <div>
+            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 mt-4">
+              Telegram Bot Referral Link
+            </p>
+            <div className="bg-gray-50 rounded-xl flex items-center justify-between p-1.5 border border-gray-100">
+              <span className="text-gray-600 pl-3 text-xs truncate max-w-[160px]">
+                {tgInviteLink}
+              </span>
+              <button
+                onClick={handleCopyTgLink}
+                className="bg-purple-50 text-purple-600 hover:text-purple-700 px-4 py-2.5 rounded-lg text-xs font-bold tracking-wide flex items-center border border-purple-100 transition-colors shadow-sm"
+              >
+                <Copy className="w-3.5 h-3.5 mr-1.5" />
+                {copiedTgLink ? "COPIED!" : "COPY LINK"}
+              </button>
+            </div>
+          </div>
+          )}
+          
+          <button onClick={() => {
+              const shareLink = tgInviteLink || inviteLink;
+              window.open(`https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent("Join and earn rewards!")}`, '_blank');
+          }} className="w-full mt-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl py-3.5 text-xs font-bold tracking-widest uppercase flex items-center justify-center shadow-lg shadow-purple-500/20 active:translate-y-0.5 transition-transform">
             <Share2 className="w-4 h-4 mr-2" />
             Share with Telegram Friends
           </button>

@@ -64,7 +64,13 @@ export default function Auth() {
 
           // Try to sign in
           try {
-            await signInWithEmailAndPassword(auth, tgEmail, tgPassword);
+            const userCredential = await signInWithEmailAndPassword(auth, tgEmail, tgPassword);
+            // Update photoUrl if available for existing user
+            if (tgUser.photo_url) {
+              await updateDoc(doc(db, 'users', userCredential.user.uid), {
+                 photoUrl: tgUser.photo_url
+              });
+            }
             return;
           } catch (signInErr: any) {
             // If user doesn't exist, create it
@@ -87,6 +93,7 @@ export default function Auth() {
                 telegramId: tgUser.id.toString(),
                 fullName: `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim(),
                 username: displayName,
+                photoUrl: tgUser.photo_url || '',
                 role: "user", 
                 usdtBalance: 0,
                 vaBalance: 0,

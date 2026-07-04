@@ -13,7 +13,7 @@ export default function TopNav() {
         <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-blue-200 to-purple-200">
           <div className="w-full h-full rounded-full border-2 border-white overflow-hidden bg-white shadow-xl">
             <img
-              src="https://i.pravatar.cc/150?u=sayed"
+              src={user?.photoUrl || `https://ui-avatars.com/api/?name=${user?.fullName || user?.username || 'User'}&background=random`}
               alt="Profile"
               className="w-full h-full object-cover"
             />

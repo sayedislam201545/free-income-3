@@ -4,7 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Crypto Earning Platform</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+      // Suppress known Telegram WebApp warnings that do not affect functionality
+      const originalConsoleError = console.error;
+      console.error = function() {
+        if (arguments[0] && typeof arguments[0] === 'string' && arguments[0].includes('CloudStorage is not supported')) {
+          return;
+        }
+        originalConsoleError.apply(console, arguments);
+      };
+    </script>
   </head>
   <body>
     <div id="root"></div>

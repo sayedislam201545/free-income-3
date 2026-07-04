@@ -121,11 +121,8 @@ export default function AdminLayout() {
               icon: FileText,
               path: "/admin/submissions",
             },
-            { name: "Ad Settings", icon: Video, path: "/admin/ads" },
             { name: "Achievements", icon: Trophy, path: "/admin/achievements" },
-            { name: "Rewards & Bonus", icon: Gift, path: "/admin/rewards" },
             { name: "Users & VIP", icon: Users, path: "/admin/users" },
-            { name: "Requests", icon: Download, path: "/admin/requests" },
             { name: "Payment Methods", icon: Upload, path: "/admin/payments" },
             { name: "Settings", icon: Settings, path: "/admin/settings" },
             { name: "Activity Summary (PDF)", icon: FileText, path: "#", onClick: generateAdminPDF },
@@ -173,13 +170,10 @@ export default function AdminLayout() {
           <Routes>
             <Route index element={<AdminDashboard />} />
             <Route path="settings" element={<AdminSettings />} />
-            <Route path="ads" element={<AdminAds />} />
             <Route path="tasks" element={<AdminTasks />} />
             <Route path="submissions" element={<AdminSubmissions />} />
-            <Route path="rewards" element={<AdminRewards />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="achievements" element={<AdminAchievements />} />
-            <Route path="requests" element={<AdminRequests />} />
             <Route path="payments" element={<AdminPayments />} />
             <Route
               path="*"
@@ -414,127 +408,6 @@ function AdminDashboard() {
             })}
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function AdminAds() {
-  const [settings, setSettings] = useState({
-    adsEnabled: true,
-    dailyAdsLimit: 50,
-    adWatchDuration: 15,
-    rewardPerAd: 50,
-  });
-
-  useEffect(() => {
-    const fetchSettings = async () => {
-      const docRef = doc(db, "settings", "ads_config");
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setSettings({ ...settings, ...(docSnap.data() as any) });
-      }
-    };
-    fetchSettings();
-  }, []);
-
-  const handleSave = async () => {
-    try {
-      await setDoc(doc(db, "settings", "ads_config"), settings, { merge: true });
-      alert("Ad settings saved successfully!");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to save ad settings.");
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Ads Management Settings</h2>
-      </div>
-
-      <div className="bg-[#151A23] p-6 rounded-xl border border-white/5 space-y-6 max-w-xl">
-        <h3 className="font-bold text-white">General Settings</h3>
-
-        <div className="flex items-center justify-between bg-[#0B0E14] border border-white/10 rounded-lg p-4">
-          <div>
-            <span className="text-white block font-medium">
-              Enable Ads System
-            </span>
-            <span className="text-gray-500 text-xs">
-              Turn ad viewing on or off globally.
-            </span>
-          </div>
-          <div
-            className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${settings.adsEnabled ? "bg-blue-600" : "bg-gray-600"}`}
-            onClick={() =>
-              setSettings({ ...settings, adsEnabled: !settings.adsEnabled })
-            }
-          >
-            <div
-              className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-all ${settings.adsEnabled ? "right-0.5" : "left-0.5"}`}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-gray-400 text-sm mb-1">
-            Daily Ads Limit (per user)
-          </label>
-          <input
-            type="number"
-            value={settings.dailyAdsLimit}
-            onChange={(e) =>
-              setSettings({
-                ...settings,
-                dailyAdsLimit: parseInt(e.target.value) || 0,
-              })
-            }
-            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-gray-400 text-sm mb-1">
-            Ad Watch Duration (seconds)
-          </label>
-          <input
-            type="number"
-            value={settings.adWatchDuration}
-            onChange={(e) =>
-              setSettings({
-                ...settings,
-                adWatchDuration: parseInt(e.target.value) || 0,
-              })
-            }
-            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-gray-400 text-sm mb-1">
-            Reward Per Ad (Coins)
-          </label>
-          <input
-            type="number"
-            value={settings.rewardPerAd}
-            onChange={(e) =>
-              setSettings({
-                ...settings,
-                rewardPerAd: parseInt(e.target.value) || 0,
-              })
-            }
-            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-
-        <button
-          onClick={handleSave}
-          className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold mt-6 shadow-md hover:bg-blue-700 transition-colors"
-        >
-          Save Settings
-        </button>
       </div>
     </div>
   );
@@ -865,6 +738,7 @@ function AdminSettings() {
     not: 10,
     bnb: 0.0001,
   });
+  const [botSettingData, setBotSettingData] = useState<any>({ botUsername: "", botToken: "", botHostingLink: "", miniAppUrl: "" });
   const [developerData, setDeveloperData] = useState<any>({
     name: "Md Sayed Islam",
     role: "Lead Developer & Architect",
@@ -876,6 +750,19 @@ function AdminSettings() {
     whatsapp: "https://wa.me/8801700000000",
   });
   const [supportAgents, setSupportAgents] = useState<any[]>([]);
+  const [adsConfig, setAdsConfig] = useState<any>({
+    adsEnabled: true,
+    dailyAdsLimit: 50,
+    adWatchDuration: 15,
+    rewardPerAd: 50,
+    monetagZoneId: "",
+    monetagSdk: ""
+  });
+  const [rewardsConfig, setRewardsConfig] = useState<any>({
+    dailyBonusReward: 100,
+    vipBonusMultiplier: 1.5,
+  });
+  const [adsTab, setAdsTab] = useState<"general" | "config">("general");
   const [vipPlans, setVipPlans] = useState<any[]>([]);
 
   const handleEdit = async (key: string) => {
@@ -888,8 +775,15 @@ function AdminSettings() {
       const snap = await getDoc(docRef);
       if (snap.exists()) {
         const data = snap.data();
-        if (key === "coin_values") {
+        if (key === "ads_rewards_config") {
+          const adsSnap = await getDoc(doc(db, "settings", "ads_config"));
+          if (adsSnap.exists()) setAdsConfig({ ...adsConfig, ...adsSnap.data() });
+          const rewSnap = await getDoc(doc(db, "settings", "rewards_config"));
+          if (rewSnap.exists()) setRewardsConfig({ ...rewardsConfig, ...rewSnap.data() });
+        } else if (key === "coin_values") {
           setCoinValues({ ...coinValues, ...data });
+        } else if (key === "bot_setting") {
+          setBotSettingData(data || { botUsername: "", botToken: "", botHostingLink: "", miniAppUrl: "" });
         } else if (key === "developer_profile") {
           if (data.name) setDeveloperData(data);
         } else if (key === "support") {
@@ -915,11 +809,16 @@ function AdminSettings() {
   const handleSave = async (stayOpen: boolean = false) => {
     if (editing) {
       try {
-        if (editing === "coin_values") {
+        if (editing === "ads_rewards_config") {
+          await setDoc(doc(db, "settings", "ads_config"), adsConfig, { merge: true });
+          await setDoc(doc(db, "settings", "rewards_config"), rewardsConfig, { merge: true });
+        } else if (editing === "coin_values") {
           await setDoc(doc(db, "settings", "coin_values"), coinValues, {
             merge: true,
           });
-        } else if (editing === "developer_profile") {
+        } else if (editing === "bot_setting") {
+        await setDoc(doc(db, "settings", "bot_setting"), botSettingData);
+      } else if (editing === "developer_profile") {
           await setDoc(
             doc(db, "settings", "developer_profile"),
             developerData,
@@ -953,7 +852,10 @@ function AdminSettings() {
       } catch (e) {
         console.warn("Save error", e);
         try {
-          if (editing === "coin_values") {
+          if (editing === "ads_rewards_config") {
+            await setDoc(doc(db, "settings", "ads_config"), adsConfig, { merge: true });
+            await setDoc(doc(db, "settings", "rewards_config"), rewardsConfig, { merge: true });
+          } else if (editing === "coin_values") {
             await setDoc(doc(db, "settings", "coin_values"), coinValues);
           } else if (editing === "developer_profile") {
             await setDoc(
@@ -1038,6 +940,119 @@ function AdminSettings() {
         </div>
       );
     }
+
+    if (editing === "bot_setting") {
+      return (
+        <div className="space-y-6 max-w-4xl animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center space-x-4 mb-6">
+            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+            <h2 className="text-xl font-bold">Bot Setting</h2>
+          </div>
+          <div className="bg-[#151A23] rounded-2xl p-6 border border-white/5 shadow-xl space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Bot Username</label>
+              <input type="text" value={botSettingData.botUsername || ""} onChange={(e) => setBotSettingData({...botSettingData, botUsername: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. MySuperBot" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Bot Token</label>
+              <input type="text" value={botSettingData.botToken || ""} onChange={(e) => setBotSettingData({...botSettingData, botToken: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="123456:ABC-DEF..." />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Mini App Link</label>
+              <input type="text" value={botSettingData.miniAppUrl || ""} onChange={(e) => setBotSettingData({...botSettingData, miniAppUrl: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="https://t.me/MyBot/app" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Hosting Link</label>
+              <input type="text" value={botSettingData.botHostingLink || ""} onChange={(e) => setBotSettingData({...botSettingData, botHostingLink: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="https://my-app.com" />
+            </div>
+            <button onClick={() => handleSave(false)} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg mt-6">
+              Save Settings
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+
+    if (editing === "ads_rewards_config") {
+      return (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center space-x-4 mb-6">
+            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+            <h2 className="text-xl font-bold">Ad & Rewards Settings</h2>
+          </div>
+          
+          <div className="flex space-x-2 bg-[#1C2331] p-1.5 rounded-xl mb-6">
+            <button
+              onClick={() => setAdsTab("general")}
+              className={`flex-1 py-2 rounded-lg font-bold transition-all ${adsTab === "general" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+            >
+              General Settings
+            </button>
+            <button
+              onClick={() => setAdsTab("config")}
+              className={`flex-1 py-2 rounded-lg font-bold transition-all ${adsTab === "config" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+            >
+              Ads Configs
+            </button>
+          </div>
+
+          <div className="bg-[#151A23] rounded-2xl p-6 border border-white/5 shadow-xl space-y-4">
+            {adsTab === "general" ? (
+              <>
+                <div className="flex items-center justify-between bg-[#0B0E14] border border-white/10 rounded-lg p-4 mb-4">
+                  <div>
+                    <span className="text-white block font-medium">Enable Ads System</span>
+                    <span className="text-gray-500 text-xs">Turn ad viewing on or off globally.</span>
+                  </div>
+                  <div
+                    className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${adsConfig?.adsEnabled ? "bg-blue-600" : "bg-gray-600"}`}
+                    onClick={() => setAdsConfig({ ...adsConfig, adsEnabled: !adsConfig?.adsEnabled })}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${adsConfig?.adsEnabled ? "left-7" : "left-1"}`} />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 mb-1">Daily Ads Limit (per user)</label>
+                  <input type="number" value={adsConfig?.dailyAdsLimit || 0} onChange={(e) => setAdsConfig({...adsConfig, dailyAdsLimit: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 mb-1">Ad Watch Duration (seconds)</label>
+                  <input type="number" value={adsConfig?.adWatchDuration || 0} onChange={(e) => setAdsConfig({...adsConfig, adWatchDuration: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 mb-1">Reward Per Ad (Coins)</label>
+                  <input type="number" value={adsConfig?.rewardPerAd || 0} onChange={(e) => setAdsConfig({...adsConfig, rewardPerAd: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
+                </div>
+                <div className="pt-4 border-t border-white/10">
+                  <label className="block text-xs font-bold text-gray-400 mb-1">Daily Bonus Claim Reward (Coins)</label>
+                  <input type="number" value={rewardsConfig?.dailyBonusReward || 0} onChange={(e) => setRewardsConfig({...rewardsConfig, dailyBonusReward: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 mb-1">VIP Bonus Multiplier</label>
+                  <input type="number" step="0.1" value={rewardsConfig?.vipBonusMultiplier || 1} onChange={(e) => setRewardsConfig({...rewardsConfig, vipBonusMultiplier: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 mb-1">Monetag Zone Id</label>
+                  <input type="text" value={adsConfig?.monetagZoneId || ""} onChange={(e) => setAdsConfig({...adsConfig, monetagZoneId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. 9955574" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 mb-1">Monetag Sdk</label>
+                  <input type="text" value={adsConfig?.monetagSdk || ""} onChange={(e) => setAdsConfig({...adsConfig, monetagSdk: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. show_9955574" />
+                </div>
+              </>
+            )}
+            <button onClick={() => handleSave(false)} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg mt-6">
+              Save Settings
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     if (editing === "developer_profile") {
       return (
         <div className="space-y-6 max-w-4xl">
@@ -1924,6 +1939,18 @@ function AdminSettings() {
             desc: "Set conversion rates for methods",
             icon: "💱",
           },
+          {
+            label: "Ads & Rewards Settings",
+            key: "ads_rewards_config",
+            desc: "Configure ads limits and reward bonuses",
+            icon: "💸",
+          },
+          {
+            label: "Bot Setting",
+            key: "bot_setting",
+            desc: "Configure telegram bot integration",
+            icon: "🤖",
+          },
         ].map((section) => (
           <div
             key={section.key}
@@ -2052,16 +2079,25 @@ function AdminSubmissions() {
                 <span className="text-gray-500">Note:</span>{" "}
                 {sub.note || "No notes provided."}
               </div>
-              {sub.profileLink && (
+                            {sub.profileLink && (
                 <a
                   href={sub.profileLink}
                   target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center space-x-1 text-blue-400 text-xs font-medium hover:text-blue-300 transition-colors bg-blue-500/10 px-2 py-1 rounded-md"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-1.5 text-blue-400 hover:text-blue-300 font-medium mb-3"
                 >
-                  <span>View Profile Link</span>
-                  <ExternalLink className="w-3 h-3" />
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>View Profile / Proof Link</span>
                 </a>
+              )}
+              {sub.imageUrls && sub.imageUrls.length > 0 && (
+                <div className="flex space-x-2 mt-2">
+                  {sub.imageUrls.map((url, i) => (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="w-16 h-16 rounded-lg overflow-hidden border border-gray-700 hover:border-blue-500 transition-colors">
+                      <img src={url} alt={`Proof ${i+1}`} className="w-full h-full object-cover" />
+                    </a>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -2106,7 +2142,7 @@ function AdminSubmissions() {
 
 function AdminUsers() {
   const [users, setUsers] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<"normal" | "vip">("normal");
+  const [activeTab, setActiveTab] = useState<"all" | "normal" | "vip">("all");
   const [userStatusFilter, setUserStatusFilter] = useState<"all" | "active" | "inactive" | "banned">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
@@ -2130,6 +2166,8 @@ function AdminUsers() {
     const isVip = u.isVip === true;
     if (activeTab === "vip" && !isVip) return false;
     if (activeTab === "normal" && isVip) return false;
+    // if activeTab === "all" do nothing
+
 
     // Check Status Filter
     const uStatus = u.status || "active"; // "banned", "active"
@@ -2332,41 +2370,55 @@ function AdminUsers() {
       </div>
 
       <div className="flex space-x-2 bg-[#151A23] p-1.5 rounded-xl border border-white/5 w-fit">
+        
         <button
+          onClick={() => setActiveTab("all")}
+          className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === "all" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
+        >
+          All Users
+        </button>
+<button
           onClick={() => setActiveTab("normal")}
-          className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === "normal" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
+          className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === "normal" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
         >
           Normal Users
         </button>
         <button
           onClick={() => setActiveTab("vip")}
-          className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === "vip" ? "bg-purple-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
+          className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === "vip" ? "bg-purple-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
         >
           VIP Users
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="flex flex-col gap-3">
         {filteredUsers.map((u) => (
           <div
             key={u.id}
-            className="bg-[#151A23] rounded-2xl border border-white/5 p-4 flex flex-col items-center text-center hover:border-white/10 transition-colors"
+            className="bg-[#151A23] rounded-2xl border border-white/5 p-4 flex items-center justify-between hover:border-white/10 transition-colors shadow-sm"
           >
-            <div className="w-16 h-16 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xl mb-3 border-2 border-blue-500/30">
-              {(u.username || "U").substring(0, 2).toUpperCase()}
+            <div className="flex items-center space-x-4 overflow-hidden">
+              <div className="w-12 h-12 shrink-0 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-lg border border-blue-500/30 overflow-hidden">
+                {u.photoUrl ? <img src={u.photoUrl} alt={u.username} className="w-full h-full object-cover"/> : (u.username || "U").substring(0, 2).toUpperCase()}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <h3 className="font-bold text-white text-base truncate">
+                  {u.username || "Unknown"} {u.isVip && <span className="ml-1 text-xs px-1.5 py-0.5 bg-yellow-500/20 text-yellow-500 rounded font-black">VIP</span>}
+                </h3>
+              </div>
             </div>
-            <h3 className="font-bold text-white text-base truncate w-full">
-              {u.username || "Unknown"}
-            </h3>
-            <p className="text-yellow-400 text-sm font-bold mt-1">
-              {u.vaBalance || 0} VA
-            </p>
-            <button
-              onClick={() => setSelectedUser(u)}
-              className="mt-4 w-full py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-bold transition-colors"
-            >
-              View Details
-            </button>
+            
+            <div className="flex items-center space-x-4 ml-4">
+              <p className="text-yellow-400 text-sm font-bold whitespace-nowrap bg-yellow-500/10 px-3 py-1.5 rounded-lg border border-yellow-500/20">
+                {u.vaBalance || 0} VA
+              </p>
+              <button
+                onClick={() => setSelectedUser(u)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors whitespace-nowrap shadow-md shadow-blue-600/20"
+              >
+                Action
+              </button>
+            </div>
           </div>
         ))}
         {filteredUsers.length === 0 && (
@@ -2374,544 +2426,6 @@ function AdminUsers() {
             No {activeTab} users found.
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-function AdminRewards() {
-  const [settings, setSettings] = useState({
-    dailyBonusReward: 100,
-    vipBonusMultiplier: 1.5,
-  });
-
-  useEffect(() => {
-    const fetchSettings = async () => {
-      const docRef = doc(db, "settings", "rewards_config");
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setSettings({ ...settings, ...(docSnap.data() as any) });
-      }
-    };
-    fetchSettings();
-  }, []);
-
-  const handleSave = async () => {
-    try {
-      await setDoc(doc(db, "settings", "rewards_config"), settings, { merge: true });
-      alert("Reward settings saved successfully!");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to save reward settings.");
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Rewards & Daily Bonus Settings</h2>
-      </div>
-
-      <div className="bg-[#151A23] p-6 rounded-xl border border-white/5 space-y-6 max-w-xl">
-        <div>
-          <label className="block text-gray-400 text-sm mb-1">
-            Daily Bonus Claim Reward (Coins)
-          </label>
-          <input
-            type="number"
-            value={settings.dailyBonusReward}
-            onChange={(e) =>
-              setSettings({
-                ...settings,
-                dailyBonusReward: parseInt(e.target.value) || 0,
-              })
-            }
-            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-gray-400 text-sm mb-1">
-            VIP Reward Multiplier
-          </label>
-          <input
-            type="number"
-            step="0.1"
-            value={settings.vipBonusMultiplier}
-            onChange={(e) =>
-              setSettings({
-                ...settings,
-                vipBonusMultiplier: parseFloat(e.target.value) || 1.0,
-              })
-            }
-            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-
-        <button
-          onClick={handleSave}
-          className="w-full py-4 bg-purple-600 text-white rounded-xl font-bold mt-6 shadow-md hover:bg-purple-700 transition-colors"
-        >
-          Save Settings
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function AdminRequests() {
-  const [requests, setRequests] = useState<any[]>([]);
-  const [activeType, setActiveType] = useState<"deposit" | "withdraw">(
-    "deposit",
-  );
-  const [activeStatus, setActiveStatus] = useState<
-    "pending" | "completed" | "rejected"
-  >("pending");
-
-  useEffect(() => {
-    const reqsRef = collection(db, "transactions");
-    const unsubscribe = onSnapshot(reqsRef, (snapshot) => {
-      if (!snapshot.empty) {
-        const arr: any[] = [];
-        snapshot.docs.forEach((docSnap) => {
-          const data = docSnap.data();
-          if (data.type === "deposit" || data.type === "withdraw") {
-            arr.push({ id: docSnap.id, ...data });
-          }
-        });
-        arr.sort(
-          (a, b) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-        );
-        setRequests(arr);
-      } else {
-        setRequests([]);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const filteredReqs = requests.filter(
-    (r) => r.type === activeType && (r.status || "pending") === activeStatus,
-  );
-
-  const handleStatusUpdate = async (req: any, newStatus: string) => {
-    try {
-      await updateDoc(doc(db, "transactions", req.id), { status: newStatus });
-
-      if (req.type === "deposit" && newStatus === "completed" && req.userId) {
-        const userRef = doc(db, "users", req.userId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          await updateDoc(userRef, {
-            vaBalance: (userData.vaBalance || 0) + (req.amount || 0),
-          });
-        }
-      }
-
-      if (req.type === "withdraw" && newStatus === "rejected" && req.userId) {
-        const userRef = doc(db, "users", req.userId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          await updateDoc(userRef, {
-            vaBalance: (userData.vaBalance || 0) + (req.amount || 0),
-          });
-        }
-      }
-
-      alert(`Request marked as ${newStatus}`);
-    } catch (e) {
-      console.error(e);
-      alert("Error updating status");
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold tracking-tight">
-          Requests Management
-        </h2>
-      </div>
-
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex space-x-2 bg-[#151A23] p-1.5 rounded-xl border border-white/5 w-fit">
-          <button
-            onClick={() => setActiveType("deposit")}
-            className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeType === "deposit" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
-          >
-            Deposits
-          </button>
-          <button
-            onClick={() => setActiveType("withdraw")}
-            className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeType === "withdraw" ? "bg-purple-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
-          >
-            Withdrawals
-          </button>
-        </div>
-
-        <div className="flex space-x-2 bg-[#151A23] p-1.5 rounded-xl border border-white/5 w-fit">
-          <button
-            onClick={() => setActiveStatus("pending")}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeStatus === "pending" ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" : "text-gray-400 hover:text-white border border-transparent"}`}
-          >
-            Pending
-          </button>
-          <button
-            onClick={() => setActiveStatus("completed")}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeStatus === "completed" ? "bg-green-500/20 text-green-400 border border-green-500/30" : "text-gray-400 hover:text-white border border-transparent"}`}
-          >
-            Approved
-          </button>
-          <button
-            onClick={() => setActiveStatus("rejected")}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeStatus === "rejected" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "text-gray-400 hover:text-white border border-transparent"}`}
-          >
-            Rejected
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredReqs.map((req) => (
-          <div
-            key={req.id}
-            className="bg-[#151A23] rounded-2xl border border-white/5 p-5 shadow-lg relative overflow-hidden hover:border-white/10 transition-colors flex flex-col"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <span
-                  className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${req.type === "deposit" ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" : "bg-purple-500/20 text-purple-400 border border-purple-500/30"}`}
-                >
-                  {req.type}
-                </span>
-                <p className="text-xs text-gray-400 mt-2">
-                  {new Date(req.timestamp).toLocaleString()}
-                </p>
-              </div>
-              <span className="font-black text-xl text-white">
-                {req.amount}{" "}
-                <span className="text-sm font-bold text-gray-400">
-                  {req.currency || "VA"}
-                </span>
-              </span>
-            </div>
-
-            <div className="bg-[#0B0E14] rounded-xl p-4 mb-4 border border-white/5 space-y-2 flex-1">
-              <div className="flex justify-between">
-                <span className="text-gray-500 text-xs">Method</span>
-                <span className="text-white text-xs font-bold capitalize">
-                  {req.method || "Unknown"}
-                </span>
-              </div>
-              {req.txId && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500 text-xs">TxID / Order ID</span>
-                  <span className="text-white text-xs font-mono">
-                    {req.txId}
-                  </span>
-                </div>
-              )}
-              {req.sender && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500 text-xs">From</span>
-                  <span className="text-white text-xs">{req.sender}</span>
-                </div>
-              )}
-              {req.receiver && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500 text-xs">To</span>
-                  <span className="text-white text-xs">{req.receiver}</span>
-                </div>
-              )}
-              {req.memo && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500 text-xs">Memo</span>
-                  <span className="text-white text-xs">{req.memo}</span>
-                </div>
-              )}
-              <div className="flex justify-between pt-2 border-t border-white/5">
-                <span className="text-gray-500 text-xs">User ID</span>
-                <span className="text-blue-400 text-xs truncate max-w-[120px]">
-                  {req.userId}
-                </span>
-              </div>
-            </div>
-
-            {activeStatus === "pending" && (
-              <div className="flex space-x-3 mt-auto">
-                <button
-                  onClick={() => handleStatusUpdate(req, "completed")}
-                  className="flex-1 py-2.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-xl font-bold transition-colors border border-green-500/30 text-sm"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => handleStatusUpdate(req, "rejected")}
-                  className="flex-1 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl font-bold transition-colors border border-red-500/30 text-sm"
-                >
-                  Reject
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-
-        {filteredReqs.length === 0 && (
-          <div className="col-span-full py-12 text-center text-gray-500 bg-[#151A23] rounded-2xl border border-white/5">
-            <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p className="font-medium text-lg">
-              No {activeStatus} {activeType}s found.
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function AdminPayments() {
-  const [methods, setMethods] = useState<any>({ deposit: [], withdraw: [] });
-  const [activeType, setActiveType] = useState<"deposit" | "withdraw">(
-    "deposit",
-  );
-  const [isEditing, setIsEditing] = useState<any>(null);
-
-  useEffect(() => {
-    const fetchMethods = async () => {
-      const docRef = doc(db, "settings", "payment_methods");
-      const snap = await getDoc(docRef);
-      if (snap.exists()) {
-        setMethods(snap.data());
-      } else {
-        const defaultMethods = {
-          deposit: [
-            {
-              id: "bkash",
-              name: "bKash",
-              photo:
-                "https://cdn.iconscout.com/icon/free/png-256/free-bkash-3627962-3030230.png",
-              address: "01XXXXXXXXX",
-              isCrypto: false,
-            },
-            {
-              id: "nagad",
-              name: "Nagad",
-              photo:
-                "https://cdn.iconscout.com/icon/free/png-256/free-nagad-3627958-3030226.png",
-              address: "01XXXXXXXXX",
-              isCrypto: false,
-            },
-            {
-              id: "rocket",
-              name: "Rocket",
-              photo:
-                "https://cdn.iconscout.com/icon/free/png-256/free-rocket-3627959-3030227.png",
-              address: "01XXXXXXXXX",
-              isCrypto: false,
-            },
-            {
-              id: "usdt",
-              name: "USDT",
-              photo: "https://cryptologos.cc/logos/tether-usdt-logo.png",
-              address: "TXXXXXXXXXXXXXXXXXX",
-              isCrypto: true,
-            },
-            {
-              id: "ton",
-              name: "TON",
-              photo: "https://cryptologos.cc/logos/toncoin-ton-logo.png",
-              address: "EQXXXXXXXXXXXXXXXX",
-              isCrypto: true,
-            },
-            {
-              id: "usdc",
-              name: "USDC",
-              photo: "https://cryptologos.cc/logos/usd-coin-usdc-logo.png",
-              address: "TXXXXXXXXXXXXXXXXXX",
-              isCrypto: true,
-            },
-          ],
-          withdraw: [
-            {
-              id: "bkash",
-              name: "bKash",
-              photo:
-                "https://cdn.iconscout.com/icon/free/png-256/free-bkash-3627962-3030230.png",
-              isCrypto: false,
-            },
-            {
-              id: "nagad",
-              name: "Nagad",
-              photo:
-                "https://cdn.iconscout.com/icon/free/png-256/free-nagad-3627958-3030226.png",
-              isCrypto: false,
-            },
-            {
-              id: "rocket",
-              name: "Rocket",
-              photo:
-                "https://cdn.iconscout.com/icon/free/png-256/free-rocket-3627959-3030227.png",
-              isCrypto: false,
-            },
-            {
-              id: "trx",
-              name: "TRX",
-              photo: "https://cryptologos.cc/logos/tron-trx-logo.png",
-              isCrypto: true,
-            },
-            {
-              id: "ton",
-              name: "TON",
-              photo: "https://cryptologos.cc/logos/toncoin-ton-logo.png",
-              isCrypto: true,
-            },
-            {
-              id: "usdt",
-              name: "USDT",
-              photo: "https://cryptologos.cc/logos/tether-usdt-logo.png",
-              isCrypto: true,
-            },
-            {
-              id: "not",
-              name: "NOT COIN",
-              photo: "https://cryptologos.cc/logos/notcoin-not-logo.png",
-              isCrypto: true,
-            },
-            {
-              id: "bnb",
-              name: "BNB",
-              photo: "https://cryptologos.cc/logos/bnb-bnb-logo.png",
-              isCrypto: true,
-            },
-          ],
-        };
-        await setDoc(docRef, defaultMethods);
-        setMethods(defaultMethods);
-      }
-    };
-    fetchMethods();
-  }, []);
-
-  const handleSave = async () => {
-    try {
-      await updateDoc(doc(db, "settings", "payment_methods"), methods);
-      alert("Saved successfully!");
-      setIsEditing(null);
-    } catch (e) {
-      alert("Error saving.");
-    }
-  };
-
-  const updateMethod = (index: number, key: string, value: string) => {
-    const updated = { ...methods };
-    updated[activeType][index][key] = value;
-    setMethods(updated);
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold tracking-tight">Payment Methods</h2>
-      </div>
-
-      <div className="flex space-x-2 bg-[#151A23] p-1.5 rounded-xl border border-white/5 w-fit">
-        <button
-          onClick={() => setActiveType("deposit")}
-          className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeType === "deposit" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
-        >
-          Deposit Methods
-        </button>
-        <button
-          onClick={() => setActiveType("withdraw")}
-          className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeType === "withdraw" ? "bg-purple-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
-        >
-          Withdraw Methods
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(methods[activeType] || []).map((method: any, idx: number) => (
-          <div
-            key={idx}
-            className="bg-[#151A23] p-5 rounded-2xl border border-white/5 flex flex-col items-center text-center"
-          >
-            {isEditing === idx ? (
-              <div className="space-y-3 w-full">
-                <div>
-                  <label className="text-xs text-gray-500 text-left block mb-1">
-                    Name
-                  </label>
-                  <input
-                    value={method.name}
-                    onChange={(e) => updateMethod(idx, "name", e.target.value)}
-                    className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-3 py-2 text-white text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 text-left block mb-1">
-                    Photo URL
-                  </label>
-                  <input
-                    value={method.photo}
-                    onChange={(e) => updateMethod(idx, "photo", e.target.value)}
-                    className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-3 py-2 text-white text-sm"
-                  />
-                </div>
-                {activeType === "deposit" && (
-                  <div>
-                    <label className="text-xs text-gray-500 text-left block mb-1">
-                      Admin Account/Address
-                    </label>
-                    <input
-                      value={method.address}
-                      onChange={(e) =>
-                        updateMethod(idx, "address", e.target.value)
-                      }
-                      className="w-full bg-[#0B0E14] border border-white/10 rounded-lg px-3 py-2 text-white text-sm"
-                    />
-                  </div>
-                )}
-                <div className="flex space-x-2 pt-2">
-                  <button
-                    onClick={handleSave}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-lg py-2 text-sm font-bold"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={() => setIsEditing(null)}
-                    className="flex-1 bg-gray-600 hover:bg-gray-700 text-white rounded-lg py-2 text-sm font-bold"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <img
-                  src={method.photo}
-                  alt={method.name}
-                  className="w-16 h-16 rounded-xl object-cover mb-3 bg-white p-1"
-                />
-                <h3 className="font-bold text-white mb-1">{method.name}</h3>
-                {activeType === "deposit" && (
-                  <p className="text-xs text-gray-400 font-mono bg-[#0B0E14] px-2 py-1 rounded truncate w-full">
-                    {method.address || "No address set"}
-                  </p>
-                )}
-                <button
-                  onClick={() => setIsEditing(idx)}
-                  className="mt-4 w-full bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 py-2 rounded-xl text-sm font-bold transition-colors"
-                >
-                  Edit Method
-                </button>
-              </>
-            )}
-          </div>
-        ))}
       </div>
     </div>
   );
@@ -3219,6 +2733,286 @@ function AdminAchievements() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+
+function AdminPayments() {
+  const [methods, setMethods] = useState<any>({ deposit: [], withdraw: [] });
+  const [activeType, setActiveType] = useState<"deposit" | "withdraw" | "requests">("deposit");
+  const [isEditing, setIsEditing] = useState<any>(null);
+  
+  const [editData, setEditData] = useState({
+    id: "",
+    name: "",
+    photo: "",
+    address: "",
+    isCrypto: false
+  });
+
+  useEffect(() => {
+    const fetchMethods = async () => {
+      const docRef = doc(db, "settings", "payment_methods");
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        setMethods(snap.data());
+      } else {
+        const defaultMethods = {
+          deposit: [],
+          withdraw: []
+        };
+        await setDoc(docRef, defaultMethods);
+        setMethods(defaultMethods);
+      }
+    };
+    fetchMethods();
+  }, []);
+
+  const handleSaveMethod = async () => {
+    if (!editData.name || !editData.address) {
+      alert("Name and Address are required");
+      return;
+    }
+    try {
+      const typeStr = activeType === "requests" ? "deposit" : activeType; // Fallback
+      const newMethods = { ...methods };
+      if (!newMethods[typeStr]) newMethods[typeStr] = [];
+      
+      if (isEditing) {
+        newMethods[typeStr] = newMethods[typeStr].map((m: any) => m.id === editData.id ? editData : m);
+      } else {
+        newMethods[typeStr].push({ ...editData, id: Date.now().toString() });
+      }
+      await setDoc(doc(db, "settings", "payment_methods"), newMethods);
+      setMethods(newMethods);
+      setIsEditing(null);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to save");
+    }
+  };
+
+  const handleDelete = async (id: string, type: string) => {
+    if(!confirm("Are you sure?")) return;
+    try {
+      const newMethods = { ...methods };
+      newMethods[type] = newMethods[type].filter((m: any) => m.id !== id);
+      await setDoc(doc(db, "settings", "payment_methods"), newMethods);
+      setMethods(newMethods);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to delete");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold">Payments & Requests</h2>
+      </div>
+      
+      <div className="flex space-x-2 bg-[#1C2331] p-1.5 rounded-xl overflow-x-auto w-full mb-6 no-scrollbar">
+        <button
+          onClick={() => { setActiveType("deposit"); setIsEditing(null); }}
+          className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeType === "deposit" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+        >
+          Deposit Methods
+        </button>
+        <button
+          onClick={() => { setActiveType("withdraw"); setIsEditing(null); }}
+          className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeType === "withdraw" ? "bg-purple-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+        >
+          Withdraw Methods
+        </button>
+        <button
+          onClick={() => { setActiveType("requests"); setIsEditing(null); }}
+          className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeType === "requests" ? "bg-red-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+        >
+          Requests
+        </button>
+      </div>
+
+      {activeType === "requests" ? (
+        <AdminRequests />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-4">
+             {methods[activeType]?.map((m: any) => (
+                <div key={m.id} className="bg-[#151A23] rounded-2xl p-4 flex items-center justify-between border border-white/5">
+                   <div className="flex items-center space-x-4">
+                      {m.photo && <img src={m.photo} alt={m.name} className="w-10 h-10 rounded-full bg-white/5" />}
+                      <div>
+                         <h3 className="font-bold text-white">{m.name} {m.isCrypto && <span className="text-xs bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded ml-2">Crypto</span>}</h3>
+                         <p className="text-xs text-gray-400">{m.address}</p>
+                      </div>
+                   </div>
+                   <div className="flex space-x-2">
+                      <button onClick={() => { setIsEditing(m.id); setEditData(m); }} className="px-3 py-1.5 bg-blue-600/20 text-blue-400 rounded-lg text-xs font-bold hover:bg-blue-600 hover:text-white">Edit</button>
+                      <button onClick={() => handleDelete(m.id, activeType)} className="px-3 py-1.5 bg-red-600/20 text-red-400 rounded-lg text-xs font-bold hover:bg-red-600 hover:text-white">Delete</button>
+                   </div>
+                </div>
+             ))}
+             {(!methods[activeType] || methods[activeType].length === 0) && (
+                <div className="text-gray-500 py-10 text-center border border-dashed border-white/10 rounded-2xl">No methods found</div>
+             )}
+          </div>
+          <div className="bg-[#151A23] rounded-2xl p-6 border border-white/5 shadow-xl h-max">
+            <h3 className="font-bold text-white mb-4">{isEditing ? "Edit Method" : "Add New Method"}</h3>
+            <div className="space-y-4">
+               <input type="text" placeholder="Name (e.g. bKash)" value={editData.name} onChange={(e) => setEditData({...editData, name: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
+               <input type="text" placeholder="Address/Number" value={editData.address} onChange={(e) => setEditData({...editData, address: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
+               <input type="text" placeholder="Icon URL" value={editData.photo} onChange={(e) => setEditData({...editData, photo: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
+               <label className="flex items-center space-x-2 text-sm text-gray-300">
+                  <input type="checkbox" checked={editData.isCrypto} onChange={(e) => setEditData({...editData, isCrypto: e.target.checked})} className="rounded bg-black/20 border-white/10" />
+                  <span>Is Crypto?</span>
+               </label>
+               <button onClick={handleSaveMethod} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold">Save Method</button>
+               {isEditing && <button onClick={() => setIsEditing(null)} className="w-full py-2 text-gray-400 font-bold">Cancel</button>}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminRequests() {
+  const [requests, setRequests] = useState<any[]>([]);
+  const [activeType, setActiveType] = useState<"deposit" | "withdraw">("deposit");
+  const [activeStatus, setActiveStatus] = useState<"pending" | "completed" | "rejected">("pending");
+
+  useEffect(() => {
+    const reqsRef = collection(db, "transactions");
+    const unsubscribe = onSnapshot(reqsRef, (snapshot) => {
+      if (!snapshot.empty) {
+        const arr: any[] = [];
+        snapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.type === "deposit" || data.type === "withdraw") {
+            arr.push({ id: docSnap.id, ...data });
+          }
+        });
+        arr.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setRequests(arr);
+      } else {
+        setRequests([]);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const filteredReqs = requests.filter(
+    (r) => r.type === activeType && (r.status || "pending") === activeStatus,
+  );
+
+  const handleStatusUpdate = async (req: any, newStatus: string) => {
+    try {
+      await updateDoc(doc(db, "transactions", req.id), { status: newStatus });
+      if (req.type === "deposit" && newStatus === "completed" && req.userId) {
+        const userRef = doc(db, "users", req.userId);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          await updateDoc(userRef, {
+            vaBalance: (userData.vaBalance || 0) + (req.amount || 0),
+          });
+        }
+      }
+      alert("Status updated!");
+    } catch (e) {
+      console.error(e);
+      alert("Failed to update status");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex space-x-2 bg-[#151A23] p-1.5 rounded-xl border border-white/5 w-fit">
+          <button
+            onClick={() => setActiveType("deposit")}
+            className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeType === "deposit" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
+          >
+            Deposits
+          </button>
+          <button
+            onClick={() => setActiveType("withdraw")}
+            className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeType === "withdraw" ? "bg-purple-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
+          >
+            Withdrawals
+          </button>
+        </div>
+        <div className="flex space-x-2 bg-[#151A23] p-1.5 rounded-xl border border-white/5 w-fit">
+          <button
+            onClick={() => setActiveStatus("pending")}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeStatus === "pending" ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" : "text-gray-400 hover:text-white border border-transparent"}`}
+          >
+            Pending
+          </button>
+          <button
+            onClick={() => setActiveStatus("completed")}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeStatus === "completed" ? "bg-green-500/20 text-green-400 border border-green-500/30" : "text-gray-400 hover:text-white border border-transparent"}`}
+          >
+            Approved
+          </button>
+          <button
+            onClick={() => setActiveStatus("rejected")}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeStatus === "rejected" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "text-gray-400 hover:text-white border border-transparent"}`}
+          >
+            Rejected
+          </button>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredReqs.map((req) => (
+          <div
+            key={req.id}
+            className="bg-[#151A23] rounded-2xl border border-white/5 p-5 shadow-lg relative overflow-hidden flex flex-col"
+          >
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <h3 className="font-bold text-white text-sm">
+                  {req.username || req.userId.substring(0, 8)}
+                </h3>
+                <p className="text-xs text-gray-400">
+                  {new Date(req.timestamp).toLocaleString()}
+                </p>
+              </div>
+              <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${req.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' : req.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                {req.status || "pending"}
+              </span>
+            </div>
+            <div className="bg-[#0B0E14] rounded-xl p-3 mb-4 flex-1">
+              <p className="text-sm font-bold text-gray-200 mb-1">
+                Amount: {req.amount} {req.currency || "Coins"}
+              </p>
+              <p className="text-xs text-blue-400 font-bold mb-2">
+                Method: {req.methodName}
+              </p>
+              <div className="text-xs text-gray-400 break-all">
+                <span className="text-gray-500">Address/Account:</span> {req.address}
+              </div>
+            </div>
+            {req.status === "pending" && (
+              <div className="flex space-x-2 mt-auto">
+                <button
+                  onClick={() => handleStatusUpdate(req, "completed")}
+                  className="flex-1 bg-green-600/20 text-green-400 hover:bg-green-600 hover:text-white py-2 rounded-lg font-bold text-xs transition-colors"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => handleStatusUpdate(req, "rejected")}
+                  className="flex-1 bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white py-2 rounded-lg font-bold text-xs transition-colors"
+                >
+                  Reject
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
