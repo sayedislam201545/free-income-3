@@ -1,100 +1,11 @@
-import { useState, useEffect } from "react";
-import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
-import { db } from "../lib/firebase";
-import { useAuthStore } from "../store/useAuthStore";
-import PremiumBackButton from "../components/PremiumBackButton";
-import {
-  Crown, ChevronRight,
-  AlertCircle,
-  Loader2,
-  ShoppingCart,
-  Clock,
-  Tag,
-} from "lucide-react";
+const fs = require('fs');
+let code = fs.readFileSync('src/pages/VIP.tsx', 'utf8');
 
-export default function VIP() {
-  const user = useAuthStore((state) => state.user);
-  const [plans, setPlans] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [buyingId, setBuyingId] = useState<number | null>(null);
-  const [userData, setUserData] = useState<any>(null);
-  const [message, setMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
+// I will rewrite the whole return statement of VIP.tsx to ensure a premium look.
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const plansSnap = await getDoc(doc(db, "settings", "vip_plans"));
-        if (plansSnap.exists() && plansSnap.data().plans) {
-          setPlans(plansSnap.data().plans);
-        }
+const search = /return \(\s*<div className="flex flex-col min-h-screen bg-\[#05050A\][\s\S]*/;
 
-        if (user) {
-          const userSnap = await getDoc(doc(db, "users", user.uid));
-          if (userSnap.exists()) {
-            setUserData(userSnap.data());
-          }
-        }
-      } catch (e) {
-        console.error("Error fetching VIP data", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [user]);
-
-  const handleBuyPlan = async (plan: any) => {
-    if (!user || !userData) return;
-
-    setMessage(null);
-    if (userData.vaBalance < plan.coin) {
-      setMessage({
-        type: "error",
-        text: `Insufficient balance to purchase this plan.`,
-      });
-      return;
-    }
-
-    setBuyingId(plan.id);
-    try {
-      const expiryDate = new Date();
-      expiryDate.setDate(expiryDate.getDate() + Number(plan.duration));
-
-      await updateDoc(doc(db, "users", user.uid), {
-        vaBalance: increment(-plan.coin),
-        isVip: true,
-        vipExpiry: expiryDate.getTime(),
-      });
-
-      setUserData({
-        ...userData,
-        vaBalance: userData.vaBalance - plan.coin,
-        isVip: true,
-        vipExpiry: expiryDate.getTime(),
-      });
-
-      setMessage({
-        type: "success",
-        text: `Successfully activated ${plan.name}! Verified badge is now active.`,
-      });
-    } catch (e) {
-      console.error("Purchase failed", e);
-      setMessage({
-        type: "error",
-        text: "An error occurred during purchase. Please try again.",
-      });
-    } finally {
-      setBuyingId(null);
-    }
-  };
-
-  const isVipActive =
-    userData?.isVip && userData?.vipExpiry && userData.vipExpiry > Date.now();
-
-  return (
+const replace = `return (
     <div className="flex flex-col min-h-screen bg-[#09090E] text-white pb-20 relative font-sans">
       {/* Premium Ambient Light */}
       <div className="fixed top-0 inset-x-0 h-[500px] bg-gradient-to-b from-amber-900/20 via-purple-900/5 to-transparent pointer-events-none -z-10" />
@@ -138,7 +49,7 @@ export default function VIP() {
 
         {message && (
           <div
-            className={`mb-6 p-4 rounded-2xl flex items-start space-x-3 backdrop-blur-md border shadow-lg ${message.type === "success" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border-rose-500/20"}`}
+            className={\`mb-6 p-4 rounded-2xl flex items-start space-x-3 backdrop-blur-md border shadow-lg \${message.type === "success" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border-rose-500/20"}\`}
           >
             {message.type === "success" ? (
               <Crown className="w-5 h-5 shrink-0 mt-0.5" />
@@ -255,4 +166,7 @@ export default function VIP() {
       </div>
     </div>
   );
-}
+}`;
+
+code = code.replace(search, replace);
+fs.writeFileSync('src/pages/VIP.tsx', code);

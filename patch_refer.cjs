@@ -1,4 +1,6 @@
-import { db } from "../lib/firebase";
+const fs = require('fs');
+
+const code = `import { db } from "../lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { Gift, Users, Coins, Share2, Copy, AlertCircle, TrendingUp, Link as LinkIcon, Info, ChevronRight, Send } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
@@ -28,7 +30,7 @@ export default function Refer() {
   }, []);
 
   const inviteCode = user?.uid
-    ? `R_${user.uid.substring(0, 6).toUpperCase()}`
+    ? \`R_\${user.uid.substring(0, 6).toUpperCase()}\`
     : "R_12M26U";
     
   const isVipUser = user?.isVip && user?.vipExpiry && user?.vipExpiry > Date.now();
@@ -189,3 +191,6 @@ export default function Refer() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('src/pages/Refer.tsx', code);

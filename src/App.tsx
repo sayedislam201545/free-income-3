@@ -37,6 +37,7 @@ import Support from "./pages/Support";
 import VIP from "./pages/VIP";
 import AccountSettings from "./pages/AccountSettings";
 import Refer from "./pages/Refer";
+import ReferralsLog from "./pages/ReferralsLog";
 import Achievements from "./pages/Achievements";
 
 declare global {
@@ -210,6 +211,7 @@ export default function App() {
           <Route path="/language" element={<Language />} />
           <Route path="/vip" element={<VIP />} />
           <Route path="/refer" element={<Refer />} />
+          <Route path="/refer/log" element={<ReferralsLog />} />
           <Route path="/achievements" element={<Achievements />} />
           <Route path="/settings" element={<AccountSettings />} />
           <Route path="/support" element={<Support />} />

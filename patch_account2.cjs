@@ -1,4 +1,6 @@
-import { User, Hash, Smartphone, Mail, Lock, Calendar, Eye, Sparkles, Bell } from "lucide-react";
+const fs = require('fs');
+
+const code = `import { User, Hash, Smartphone, Mail, Lock, Calendar, Eye, Sparkles, Bell } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useNavigate } from "react-router-dom";
 import PremiumBackButton from "../components/PremiumBackButton";
@@ -136,12 +138,15 @@ export default function AccountSettings() {
           <button 
             onClick={togglePushNotifications}
             disabled={updating}
-            className={`w-12 h-6 rounded-full relative transition-colors duration-300 ${pushEnabled ? 'bg-teal-500' : 'bg-gray-300'} ${updating ? 'opacity-50' : ''}`}
+            className={\`w-12 h-6 rounded-full relative transition-colors duration-300 \${pushEnabled ? 'bg-teal-500' : 'bg-gray-300'} \${updating ? 'opacity-50' : ''}\`}
           >
-             <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform duration-300 shadow-sm ${pushEnabled ? 'left-7' : 'left-1'}`} />
+             <div className={\`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform duration-300 shadow-sm \${pushEnabled ? 'left-7' : 'left-1'}\`} />
           </button>
         </div>
       </div>
     </div>
   );
 }
+`;
+
+fs.writeFileSync('src/pages/AccountSettings.tsx', code);
