@@ -99,7 +99,12 @@ export default function TaskDetail() {
   };
 
   const handleStartVisit = () => {
-    window.open(task?.targetUrl || "https://google.com", "_blank");
+    const url = task?.targetUrl || "https://google.com";
+    if ((window as any).Telegram?.WebApp?.openLink) {
+      (window as any).Telegram.WebApp.openLink(url);
+    } else {
+      window.open(url, "_blank");
+    }
     const randTime = Math.floor(Math.random() * 11) + 30; // 30 to 40
     startTracking(randTime);
   };
@@ -172,56 +177,75 @@ export default function TaskDetail() {
 
   return (
     <div className="flex flex-col min-h-screen -mx-4 -my-6 px-4 py-6 bg-gray-50 text-gray-900 relative">
-      {/* Header */}
-      <header className="flex items-center mb-6 pt-2 relative z-10">
-        <PremiumBackButton fallbackPath="/task" className="scale-90 origin-left mr-4" />
-        <h1 className="text-2xl font-black text-[#2C334A] tracking-tight">Task Details</h1>
+      {/* Header Area */}
+      <div className="absolute top-0 left-0 right-0 h-56 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-b-[40px] z-0 overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-4 right-8 w-4 h-4 bg-white/30 rotate-45" />
+        <div className="absolute top-12 right-20 w-2 h-2 bg-white/20 rotate-45" />
+        <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+        <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+      </div>
+
+      <header className="flex items-center mb-6 pt-4 px-2 relative z-10">
+        <PremiumBackButton fallbackPath="/task" className="scale-90 origin-left mr-3" theme="light" />
+        <h1 className="text-2xl font-bold text-white tracking-tight">Task Details</h1>
       </header>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto pb-20 space-y-6">
-        <div className="bg-white/80 backdrop-blur-xl rounded-[24px] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.08)] border border-white relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-100 to-indigo-100 blur-[30px] rounded-full pointer-events-none group-hover:bg-blue-200 transition-colors" />
+      <div className="flex-1 overflow-y-auto pb-20 space-y-6 relative z-10 px-2">
+        <div className="bg-white rounded-[24px] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.08)]">
           
-          <div className="absolute top-4 right-4 z-20">
+          <div className="flex justify-between items-start mb-4">
+            <h2 className="text-2xl font-black text-[#1E2330] leading-tight max-w-[65%]">{task.title}</h2>
             <button
-              onClick={() => window.open(task.youtubeUrl || "https://youtube.com", "_blank")}
-              className="flex items-center space-x-1 bg-red-50 text-red-600 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border border-red-100 shadow-sm active:scale-95 transition-transform"
+              onClick={() => {
+                const url = task.youtubeUrl || "https://youtube.com";
+                if ((window as any).Telegram?.WebApp?.openLink) {
+                  (window as any).Telegram.WebApp.openLink(url);
+                } else {
+                  window.open(url, "_blank");
+                }
+              }}
+              className="flex items-center space-x-1.5 bg-red-50 text-red-500 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-100 shadow-sm active:scale-95 transition-transform shrink-0"
             >
-              <Video className="w-3.5 h-3.5" />
-              <span className="uppercase tracking-wider">Tutorial</span>
+              <Video className="w-4 h-4" />
+              <span className="uppercase tracking-wide">Tutorial</span>
             </button>
           </div>
 
-          <div className="relative z-10">
-            <h2 className="text-xl font-black text-[#2C334A] mb-2 leading-tight pr-24">{task.title}</h2>
-            
-            <div className="inline-flex items-center space-x-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 px-3 py-1.5 rounded-lg mb-5 shadow-sm">
-              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-white text-[10px] font-bold shadow-sm">🪙</div>
-              <span className="text-blue-700 font-bold text-sm tracking-tight">+{task.reward} <span className="text-xs font-semibold opacity-80">Coins</span></span>
-            </div>
+          <div className="inline-flex items-center space-x-2 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-xl mb-6 shadow-sm">
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">🪙</div>
+            <span className="text-indigo-600 font-bold text-sm tracking-tight">+{task.reward} <span className="text-xs font-medium text-gray-500">Coins</span></span>
+          </div>
 
-            <div className="bg-gradient-to-br from-indigo-50/50 to-blue-50/50 border border-indigo-100 rounded-xl p-4 mb-2 shadow-inner relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-indigo-400" />
-              <h3 className="font-extrabold text-[10px] text-indigo-700 uppercase tracking-widest mb-1.5 opacity-80">
-                Instructions
-              </h3>
-              <p className="text-[12px] text-indigo-900 font-medium whitespace-pre-wrap leading-relaxed">
-                {task.description ||
-                  "Follow the instructions to complete this task and earn your reward. Make sure to complete all steps accurately to receive coins."}
-              </p>
+          <div className="bg-[#F4F4FA] border-l-4 border-indigo-500 rounded-r-xl rounded-l-sm p-4 mb-2">
+            <div className="flex items-center space-x-2 mb-2">
+               <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+               <h3 className="font-bold text-xs text-indigo-700 uppercase tracking-wide">
+                 Instructions
+               </h3>
             </div>
+            <p className="text-sm text-gray-700 font-medium whitespace-pre-wrap leading-relaxed">
+              {task.description ||
+                "Follow the instructions to complete this task and earn your reward. Make sure to complete all steps accurately to receive coins."}
+            </p>
           </div>
         </div>
 
         {/* Action Section based on Category */}
-        <div className="animate-in fade-in slide-in-from-bottom-4 space-y-3">
+        {/* Action Section based on Category */}
+        <div className="bg-white rounded-[24px] shadow-[0_10px_30px_rgba(0,0,0,0.08)] animate-in fade-in slide-in-from-bottom-4 p-2">
           {(category === "joined" || category === "registration") && (
             <button
-              onClick={() =>
-                window.open(task.targetUrl || "https://t.me", "_blank")
-              }
-              className="w-full bg-gradient-to-b from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white py-4 rounded-2xl font-black text-sm tracking-wide shadow-[0_6px_0_rgb(30,58,138)] flex items-center justify-center space-x-2 transition-transform active:translate-y-[6px] active:shadow-[0_0px_0_rgb(30,58,138)]"
+              onClick={() => {
+                const url = task.targetUrl || "https://t.me";
+                if ((window as any).Telegram?.WebApp?.openLink) {
+                  (window as any).Telegram.WebApp.openLink(url);
+                } else {
+                  window.open(url, "_blank");
+                }
+              }}
+              className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-4 rounded-2xl font-bold text-sm tracking-wide shadow-md flex items-center justify-center space-x-2 active:scale-95 transition-transform"
             >
               <span>{category === "registration" ? "REGISTRATION NOW" : "JOIN NOW"}</span>
               <ExternalLink className="w-4 h-4" />
@@ -232,14 +256,14 @@ export default function TaskDetail() {
             isTracking ? (
               <button
                 onClick={cancelTracking}
-                className="w-full bg-gradient-to-b from-gray-400 to-gray-500 text-white py-4 rounded-2xl font-black text-sm tracking-wide shadow-[0_6px_0_rgb(107,114,128)] flex items-center justify-center space-x-2 transition-transform active:translate-y-[6px] active:shadow-[0_0px_0_rgb(107,114,128)]"
+                className="w-full bg-gradient-to-r from-gray-400 to-gray-500 text-white py-4 rounded-2xl font-bold text-sm tracking-wide shadow-md flex items-center justify-center space-x-2 active:scale-95 transition-transform"
               >
                 <span>⏳ PLEASE WAIT... {timeRemaining}S</span>
               </button>
             ) : (
               <button
                 onClick={handleStartVisit}
-                className="w-full bg-gradient-to-b from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white py-4 rounded-2xl font-black text-sm tracking-wide shadow-[0_6px_0_rgb(30,58,138)] flex items-center justify-center space-x-2 transition-transform active:translate-y-[6px] active:shadow-[0_0px_0_rgb(30,58,138)]"
+                className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-4 rounded-2xl font-bold text-sm tracking-wide shadow-md flex items-center justify-center space-x-2 active:scale-95 transition-transform"
               >
                 <span>START VISITING</span>
                 <ExternalLink className="w-4 h-4" />
@@ -251,7 +275,7 @@ export default function TaskDetail() {
             !showSubmitForm && (
               <button
                 onClick={() => setShowSubmitForm(true)}
-                className="w-full bg-gradient-to-b from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white py-4 rounded-2xl font-black text-sm tracking-wide shadow-[0_6px_0_rgb(21,128,61)] flex items-center justify-center space-x-2 transition-transform active:translate-y-[6px] active:shadow-[0_0px_0_rgb(21,128,61)]"
+                className="w-full mt-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white py-4 rounded-2xl font-bold text-sm tracking-wide shadow-md flex items-center justify-center space-x-2 active:scale-95 transition-transform"
               >
                 <span>SUBMIT PROOF</span>
                 <Send className="w-4 h-4" />
