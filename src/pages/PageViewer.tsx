@@ -53,7 +53,7 @@ export default function PageViewer() {
   }, [location.pathname, title]);
 
   return (
-    <div className="flex flex-col min-h-screen px-4 py-6 bg-gray-50 relative">
+    <div className="flex flex-col min-h-screen max-w-md mx-auto w-full relative px-4 py-6 bg-gray-50 relative">
       <header className="flex items-center mb-6 relative z-10 pt-2">
         <PremiumBackButton fallbackPath="/profile" className="mr-4 scale-90" />
         <h1 className="font-extrabold text-lg text-gray-800">{title}</h1>

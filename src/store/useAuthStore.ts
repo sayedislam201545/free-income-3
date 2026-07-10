@@ -33,6 +33,7 @@ interface User {
   dailySpins?: number;
   lastSpinDate?: number;
   pushEnabled?: boolean;
+  referredBy?: string;
 }
 
 interface AuthState {

@@ -1,5 +1,5 @@
 import { db } from "../lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
 import { Gift, Users, Coins, Share2, Copy, AlertCircle, TrendingUp, Link as LinkIcon, Info, ChevronRight, Send } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useState, useEffect } from "react";
@@ -27,9 +27,7 @@ export default function Refer() {
     fetchBotSetting();
   }, []);
 
-  const inviteCode = user?.uid
-    ? `R_${user.uid.substring(0, 6).toUpperCase()}`
-    : "R_12M26U";
+  const inviteCode = user?.uid ? user.uid : "R_12M26U";
     
   const isVipUser = user?.isVip && user?.vipExpiry && user?.vipExpiry > Date.now();
   const rewardAmount = isVipUser ? 275 : 250;
@@ -49,19 +47,42 @@ export default function Refer() {
       alert("You have already used a referral code.");
       return;
     }
+    if (inputCode === user?.uid) {
+      alert("You cannot refer yourself.");
+      return;
+    }
     
     setIsSubmitting(true);
     try {
-       // Just a simulated submit for now.
-       // In a real app we'd verify the code, find the referrer, and update both balances.
+       const referrerRef = doc(db, "users", inputCode);
+       const referrerSnap = await getDoc(referrerRef);
+       if (!referrerSnap.exists()) {
+          alert("Invalid invite code. User not found.");
+          setIsSubmitting(false);
+          return;
+       }
+
+       const referrerData = referrerSnap.data();
+       const referrerIsVip = referrerData?.isVip && referrerData?.vipExpiry && referrerData?.vipExpiry > Date.now();
+       const referrerReward = referrerIsVip ? 275 : 250;
+
+       // Update current user (referee)
        const userRef = doc(db, "users", user!.uid);
        await updateDoc(userRef, {
          referredBy: inputCode,
-         vaBalance: (user?.vaBalance || 0) + rewardAmount
+         vaBalance: increment(rewardAmount)
        });
-       alert("Referral successful! You earned bonus coins.");
+
+       // Update referrer
+       await updateDoc(referrerRef, {
+         referralCount: increment(1),
+         vaBalance: increment(referrerReward)
+       });
+
+       alert(`Referral successful! You earned ${rewardAmount} coins.`);
        window.location.reload();
     } catch(e) {
+      console.error(e);
       alert("Failed to submit code.");
     } finally {
       setIsSubmitting(false);
@@ -69,7 +90,7 @@ export default function Refer() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F8F9FE] text-gray-900 pb-10">
+    <div className="flex flex-col min-h-screen max-w-md mx-auto w-full relative overflow-hidden bg-[#F8F9FE] text-gray-900 pb-10">
       {/* Top Bar */}
       <div className="flex items-center justify-between p-4 pt-6">
         <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-[0_4px_15px_rgba(0,0,0,0.03)] border border-gray-100">

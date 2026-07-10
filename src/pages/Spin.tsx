@@ -97,7 +97,7 @@ export default function Spin() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen -mx-4 -my-6 px-4 py-6 bg-gradient-to-b from-[#AABBED] via-[#E2BBE9] to-[#EAF0FF] relative overflow-hidden">
+    <div className="flex flex-col min-h-screen max-w-md mx-auto w-full relative -mx-4 -my-6 px-4 py-6 bg-gradient-to-b from-[#AABBED] via-[#E2BBE9] to-[#EAF0FF] relative overflow-hidden">
       {/* Background decorations */}
       <div className="absolute top-20 left-10 w-24 h-24 bg-white/40 blur-2xl rounded-full" />
       <div className="absolute top-40 right-10 w-32 h-32 bg-purple-400/20 blur-3xl rounded-full" />

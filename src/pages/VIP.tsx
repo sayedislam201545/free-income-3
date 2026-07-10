@@ -95,7 +95,7 @@ export default function VIP() {
     userData?.isVip && userData?.vipExpiry && userData.vipExpiry > Date.now();
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#09090E] text-white pb-20 relative font-sans">
+    <div className="flex flex-col min-h-screen max-w-md mx-auto w-full relative bg-[#09090E] text-white pb-20 relative font-sans">
       {/* Premium Ambient Light */}
       <div className="fixed top-0 inset-x-0 h-[500px] bg-gradient-to-b from-amber-900/20 via-purple-900/5 to-transparent pointer-events-none -z-10" />
       <div className="fixed top-[-20%] left-[-10%] w-[500px] h-[500px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none -z-10" />

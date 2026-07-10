@@ -48,7 +48,7 @@ export default function Language() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen -mx-4 -my-6 px-4 py-6 bg-gray-50 relative">
+    <div className="flex flex-col min-h-screen max-w-md mx-auto w-full relative -mx-4 -my-6 px-4 py-6 bg-gray-50 relative">
       {/* Header */}
       <header className="flex items-center mb-8 text-[#2C334A] pt-2">
         <PremiumBackButton fallbackPath="/profile" className="scale-90 origin-left mr-4" />

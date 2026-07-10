@@ -15,20 +15,27 @@ export default function ReferralsLog() {
     const fetchLogs = async () => {
       if (!user?.uid) return;
       try {
-        const inviteCode = `R_${user.uid.substring(0, 6).toUpperCase()}`;
+        const inviteCode = user?.uid;
         const usersRef = collection(db, "users");
         // For simplicity, query users who registered using this code
         // We'll need to store 'referredBy' in the user document when they sign up.
         const q = query(
           usersRef,
-          where("referredBy", "==", inviteCode),
-          orderBy("createdAt", "desc")
+          where("referredBy", "==", inviteCode)
         );
         const snapshot = await getDocs(q);
         const logData = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
+        
+        // Sort in memory by createdAt descending
+        logData.sort((a: any, b: any) => {
+          const tA = new Date(a.createdAt || 0).getTime();
+          const tB = new Date(b.createdAt || 0).getTime();
+          return tB - tA;
+        });
+
         setLogs(logData);
       } catch (error) {
         console.error("Error fetching referral logs:", error);
@@ -40,7 +47,7 @@ export default function ReferralsLog() {
   }, [user]);
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-80px)] bg-gray-50 text-gray-900 pb-10 relative overflow-hidden">
+    <div className="flex flex-col min-h-[calc(100vh-80px)] max-w-md mx-auto w-full relative(100vh-80px)] bg-gray-50 text-gray-900 pb-10 relative overflow-hidden">
       {/* Header */}
       <div className="flex items-center mb-6 relative z-10 pt-4 px-4">
         <PremiumBackButton

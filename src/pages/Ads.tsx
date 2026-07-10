@@ -58,7 +58,7 @@ export default function Ads() {
   }, []);
 
   return (
-      <div className="flex flex-col min-h-screen -mx-4 -my-6 px-4 py-8 bg-gradient-to-b from-slate-50 to-indigo-50">
+      <div className="flex flex-col min-h-screen max-w-md mx-auto w-full relative -mx-4 -my-6 px-4 py-8 bg-gradient-to-b from-slate-50 to-indigo-50">
       
       <div className="flex items-center justify-between mb-6 px-2">
          <h2 className="text-2xl font-extrabold text-[#2C334A] flex items-center drop-shadow-sm tracking-tight">

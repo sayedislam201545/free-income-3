@@ -88,7 +88,7 @@ export default function Achievements() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#080B17] -mx-4 -my-6 px-4 py-8 overflow-x-hidden relative text-white">
+    <div className="flex flex-col min-h-screen max-w-md mx-auto w-full relative bg-[#080B17] -mx-4 -my-6 px-4 py-8 overflow-x-hidden relative text-white">
       {/* Background glow effects */}
       <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-purple-600/20 blur-[100px] rounded-full z-0 pointer-events-none"></div>
       <div className="absolute top-[30%] left-[-20%] w-72 h-72 bg-blue-600/10 blur-[100px] rounded-full z-0 pointer-events-none"></div>

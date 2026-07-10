@@ -238,7 +238,7 @@ export default function Wallet() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen -mx-4 -my-6 px-4 py-8 bg-gradient-to-b from-slate-50 to-indigo-50 text-gray-900 overflow-hidden relative">
+    <div className="flex flex-col min-h-screen max-w-md mx-auto w-full relative -mx-4 -my-6 px-4 py-8 bg-gradient-to-b from-slate-50 to-indigo-50 text-gray-900 overflow-hidden relative">
       
       {/* Toast Notification */}
       {toast && (

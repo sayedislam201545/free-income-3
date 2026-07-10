@@ -56,7 +56,7 @@ export default function Notifications() {
   ] as const;
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 -mx-4 -my-6 relative">
+    <div className="flex flex-col min-h-screen max-w-md mx-auto w-full relative bg-gray-50 -mx-4 -my-6 relative">
       <div className="bg-white px-4 pt-10 pb-4 shadow-sm z-10 sticky top-0">
         <div className="flex items-center mb-4">
             <PremiumBackButton fallbackPath="/" className="scale-90 origin-left mr-4" />

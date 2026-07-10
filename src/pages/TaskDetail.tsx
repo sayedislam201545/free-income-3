@@ -64,7 +64,7 @@ export default function TaskDetail() {
       show: true,
       type: "early_exit",
       timeSpent: Math.floor(timeSpent),
-      remaining: 35 - Math.floor(timeSpent)
+      remaining: 40 - Math.floor(timeSpent)
     });
   });
 
@@ -105,8 +105,7 @@ export default function TaskDetail() {
     } else {
       window.open(url, "_blank");
     }
-    const randTime = Math.floor(Math.random() * 11) + 30; // 30 to 40
-    startTracking(randTime);
+    startTracking(40);
   };
 
   const handleAppSubmit = async () => {
@@ -176,7 +175,7 @@ export default function TaskDetail() {
   const category = task.category || "joined";
 
   return (
-    <div className="flex flex-col min-h-screen -mx-4 -my-6 px-4 py-6 bg-gray-50 text-gray-900 relative">
+    <div className="flex flex-col min-h-screen max-w-md mx-auto w-full relative -mx-4 -my-6 px-4 py-6 bg-gray-50 text-gray-900 relative">
       {/* Header Area */}
       <div className="absolute top-0 left-0 right-0 h-56 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-b-[40px] z-0 overflow-hidden">
         {/* Decorative elements */}

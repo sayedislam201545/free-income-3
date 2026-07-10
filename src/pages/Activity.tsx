@@ -43,7 +43,7 @@ export default function Activity() {
   }, [user?.uid]);
 
   return (
-    <div className="flex flex-col min-h-screen pb-20">
+    <div className="flex flex-col min-h-screen max-w-md mx-auto w-full relative pb-20">
       <div className="flex items-center mb-6 pt-2">
         <PremiumBackButton
           fallbackPath="/profile"

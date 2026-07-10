@@ -56,7 +56,7 @@ export default function Support() {
   };
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-140px)] bg-gray-50 text-gray-900 pb-10 relative overflow-hidden">
+    <div className="flex flex-col min-h-[calc(100vh-80px)] max-w-md mx-auto w-full relative(100vh-140px)] bg-gray-50 text-gray-900 pb-10 relative overflow-hidden">
       {/* 3D Background Elements */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-400/10 to-purple-500/10 rounded-full blur-[80px] pointer-events-none"></div>
 

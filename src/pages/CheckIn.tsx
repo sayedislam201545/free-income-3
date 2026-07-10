@@ -145,7 +145,7 @@ export default function CheckIn() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen -mx-4 -my-6 px-4 py-6 bg-gradient-to-b from-[#8ab4f8] to-[#EAF0FF] relative">
+    <div className="flex flex-col min-h-screen max-w-md mx-auto w-full relative -mx-4 -my-6 px-4 py-6 bg-gradient-to-b from-[#8ab4f8] to-[#EAF0FF] relative">
       {/* Header */}
       <header className="flex items-center justify-between mb-6 text-gray-900 relative z-10 pt-2">
         <PremiumBackButton fallbackPath="/" className="scale-90 origin-left" />

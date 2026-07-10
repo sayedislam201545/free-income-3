@@ -36,7 +36,7 @@ export default function AccountSettings() {
   };
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-80px)] bg-[#F8F9FE] text-gray-900 -mx-4 -my-6 px-4 py-8 relative overflow-hidden">
+    <div className="flex flex-col min-h-[calc(100vh-80px)] max-w-md mx-auto w-full relative(100vh-80px)] bg-[#F8F9FE] text-gray-900 -mx-4 -my-6 px-4 py-8 relative overflow-hidden">
       {/* Header */}
       <div className="flex items-center mb-8 relative z-10 pt-2">
         <PremiumBackButton fallbackPath="/profile" className="scale-90 origin-left mr-4" />

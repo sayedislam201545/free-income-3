@@ -208,7 +208,7 @@ export default function Task() {
   }, [activeCategory, user?.currentLevel, navigate]);
 
   return (
-    <div className="flex flex-col min-h-screen -mx-4 -my-6 px-4 py-8 bg-gray-50 text-gray-900 overflow-x-hidden">
+    <div className="flex flex-col min-h-screen max-w-md mx-auto w-full relative -mx-4 -my-6 px-4 py-8 bg-gray-50 text-gray-900 overflow-x-hidden">
       <h2 className="text-xl font-bold mb-4 px-2 flex items-center text-gray-800">
         <ListTodo className="mr-2 text-blue-600" /> Available Tasks
       </h2>

@@ -86,18 +86,18 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="flex h-screen bg-[#0B0E14] text-white">
+    <div className="flex flex-col h-screen max-w-md mx-auto w-full relative bg-[#0B0E14] text-white">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 "
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-white/10 bg-[#151A23] flex flex-col transform transition-transform duration-300 lg:static lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-white/10 bg-[#151A23] flex flex-col transform transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center space-x-2 text-crypto-primary">
@@ -105,7 +105,7 @@ export default function AdminLayout() {
             <span className="font-bold text-lg tracking-tight">Admin CMS</span>
           </div>
           <button
-            className="lg:hidden text-gray-400 hover:text-white"
+            className=" text-gray-400 hover:text-white"
             onClick={() => setSidebarOpen(false)}
           >
             <X className="w-6 h-6" />
@@ -2226,6 +2226,27 @@ function AdminUsers() {
     }
   };
 
+  const handleToggleAdmin = async () => {
+    if (!selectedUser) return;
+    if (selectedUser.role === "super_admin") {
+      alert("Cannot modify super_admin role.");
+      return;
+    }
+    try {
+      const userRef = doc(db, "users", selectedUser.id);
+      const isAdmin = selectedUser.role === "admin";
+      await updateDoc(userRef, { role: isAdmin ? "user" : "admin" });
+      setSelectedUser({
+        ...selectedUser,
+        role: isAdmin ? "user" : "admin",
+      });
+      alert(`User is now ${isAdmin ? "User" : "Admin"}!`);
+    } catch (e) {
+      console.error(e);
+      alert("Error updating role");
+    }
+  };
+
   if (selectedUser) {
     return (
       <div className="space-y-6">
@@ -2336,6 +2357,12 @@ function AdminUsers() {
                 className={`px-6 py-3 rounded-xl font-bold transition-colors w-full ${selectedUser.status === "banned" ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" : "bg-red-500/20 text-red-400 hover:bg-red-500/30"}`}
               >
                 {selectedUser.status === "banned" ? "Unban User" : "Ban User"}
+              </button>
+              <button
+                onClick={handleToggleAdmin}
+                className={`px-6 py-3 rounded-xl font-bold transition-colors w-full mt-3 ${selectedUser.role === "admin" ? "bg-orange-500/20 text-orange-400 hover:bg-orange-500/30" : "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"}`}
+              >
+                {selectedUser.role === "admin" ? "Remove Admin" : "Make Admin"}
               </button>
             </div>
           </div>

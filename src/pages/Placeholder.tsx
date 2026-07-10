@@ -7,7 +7,7 @@ export default function Placeholder() {
   const pathName = location.pathname.split('/').pop()?.replace('-', ' ') || 'Page';
 
   return (
-    <div className="flex flex-col min-h-screen -mx-4 -my-6 px-6 py-8 bg-[#040A18] text-white pt-12">
+    <div className="flex flex-col min-h-screen max-w-md mx-auto w-full relative -mx-4 -my-6 px-6 py-8 bg-[#040A18] text-white pt-12">
       <header className="flex items-center mb-8 relative z-10 w-full">
         <button 
           onClick={() => navigate(-1)} 

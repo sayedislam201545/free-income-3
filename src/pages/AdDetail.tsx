@@ -6,14 +6,13 @@ import PremiumBackButton from "../components/PremiumBackButton";
 import { motion, AnimatePresence } from "framer-motion";
 import { playPremiumClick } from "../utils/audio";
 import { Play } from "lucide-react";
+import { useAdTracker } from "../hooks/useAdTracker";
 
 export default function AdDetail() {
   const navigate = useNavigate();
   const [adCount, setAdCount] = useState(0);
   const [dailyWatched, setDailyWatched] = useState(0);
   
-  const [isTracking, setIsTracking] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(15);
   const [countdown, setCountdown] = useState<number | null>(null);
   
   const [modalState, setModalState] = useState<{
@@ -38,7 +37,6 @@ export default function AdDetail() {
         const snap = await getDoc(doc(db, "settings", "ads_config"));
         if (snap.exists()) {
           setAdsConfig({ ...adsConfig, ...snap.data() });
-          setTimeRemaining(snap.data().adWatchDuration || 15);
         }
       } catch (e) {}
     };
@@ -69,17 +67,17 @@ export default function AdDetail() {
     fetchUserData();
   }, []);
 
-  useEffect(() => {
-    let timer: any;
-    if (isTracking && timeRemaining > 0) {
-      timer = setInterval(() => {
-        setTimeRemaining((prev) => prev - 1);
-      }, 1000);
-    } else if (isTracking && timeRemaining <= 0) {
-      handleAdComplete();
-    }
-    return () => clearInterval(timer);
-  }, [isTracking, timeRemaining]);
+  const { startTracking, isTracking, timeRemaining, cancelTracking } = useAdTracker(() => {
+    handleAdComplete();
+  }, (timeSpent) => {
+    const required = adsConfig.adWatchDuration || 15;
+    setModalState({
+      show: true,
+      type: "error",
+      timeSpent: Math.floor(timeSpent),
+      remaining: required - Math.floor(timeSpent),
+    });
+  });
 
   useEffect(() => {
     let cTimer: any;
@@ -98,29 +96,29 @@ export default function AdDetail() {
       return;
     }
     
-    // Simulate Monetag ad opening
+    // Open Monetag ad or fallback
     if (adsConfig.monetagSdk && window[adsConfig.monetagSdk as any]) {
         (window as any)[adsConfig.monetagSdk]();
+    } else if (adsConfig.monetagZoneId) {
+        const url = `https://monetag.com/?zoneId=${adsConfig.monetagZoneId}`;
+        if ((window as any).Telegram?.WebApp) {
+          (window as any).Telegram.WebApp.openLink(url);
+        } else {
+          window.open(url, "_blank");
+        }
+    } else {
+        const url = "https://www.google.com";
+        if ((window as any).Telegram?.WebApp) {
+          (window as any).Telegram.WebApp.openLink(url);
+        } else {
+          window.open(url, "_blank");
+        }
     }
     
-    setIsTracking(true);
-    setTimeRemaining(adsConfig.adWatchDuration || 15);
-  };
-
-  const cancelTracking = () => {
-    if (!isTracking) return;
-    setIsTracking(false);
-    const spent = (adsConfig.adWatchDuration || 15) - timeRemaining;
-    setModalState({
-      show: true,
-      type: "error",
-      timeSpent: spent,
-      remaining: timeRemaining,
-    });
+    startTracking(adsConfig.adWatchDuration || 15);
   };
 
   const handleAdComplete = async () => {
-    setIsTracking(false);
     if (!auth.currentUser) return;
     const userRef = doc(db, "users", auth.currentUser.uid);
     try {

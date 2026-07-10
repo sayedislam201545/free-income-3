@@ -96,7 +96,7 @@ export default function Auth() {
                 photoUrl: tgUser.photo_url || '',
                 role: "user", 
                 usdtBalance: 0,
-                vaBalance: 0,
+                vaBalance: referredBy ? 250 : 0,
                 currentLevel: 1,
                 totalEarned: 0,
                 referralCount: 0,
@@ -164,7 +164,7 @@ export default function Auth() {
           referredBy,
           role: "user", 
           usdtBalance: 0,
-          vaBalance: 0,
+          vaBalance: referredBy ? 250 : 0,
           currentLevel: 1,
           totalEarned: 0,
           referralCount: 0,
@@ -188,7 +188,7 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-[#F4F7FE] px-4 font-sans relative overflow-hidden py-12">
+    <div className="min-h-screen flex flex-col max-w-md mx-auto w-full relative justify-center items-center bg-[#F4F7FE] px-4 font-sans relative overflow-hidden py-12">
       {/* 3D Background Elements */}
       <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full blur-[80px] opacity-40"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-80 h-80 bg-gradient-to-br from-pink-400 to-orange-400 rounded-full blur-[80px] opacity-30"></div>

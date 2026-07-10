@@ -26,7 +26,7 @@ export default function Leaderboard() {
                  });
              });
              
-             const orderByField = activeTab === 'refer' ? 'referralCount' : 'totalEarned';
+             const orderByField = activeTab === 'refer' ? 'referralCount' : 'vaBalance';
              
              // Sort descending
              usersArray.sort((a, b) => b[orderByField] - a[orderByField]);
@@ -58,7 +58,7 @@ export default function Leaderboard() {
   );
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-140px)] bg-gray-50 text-gray-900 pb-10 relative overflow-hidden">
+    <div className="flex flex-col min-h-[calc(100vh-80px)] max-w-md mx-auto w-full relative(100vh-140px)] bg-gray-50 text-gray-900 pb-10 relative overflow-hidden">
       {/* Header Card */}
       <div className="bg-white rounded-[24px] p-5 border border-gray-100 shadow-sm mb-4 relative overflow-hidden">
         <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/10 blur-[40px] rounded-full pointer-events-none" />
