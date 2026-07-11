@@ -97,10 +97,14 @@ export default function AdDetail() {
     }
     
     // Open Monetag ad or fallback
-    if (adsConfig.monetagSdk && window[adsConfig.monetagSdk as any]) {
+    if (adsConfig.monetagScriptUrl && adsConfig.monetagZoneId && adsConfig.monetagSdk) {
+        import("../lib/monetag").then(({ triggerMonetagAd }) => {
+            triggerMonetagAd(adsConfig.monetagScriptUrl, adsConfig.monetagZoneId, adsConfig.monetagSdk);
+        });
+    } else if (adsConfig.monetagSdk && window[adsConfig.monetagSdk as any]) {
         (window as any)[adsConfig.monetagSdk]();
     } else if (adsConfig.monetagZoneId) {
-        const url = `https://monetag.com/?zoneId=${adsConfig.monetagZoneId}`;
+        const url = adsConfig.monetagZoneId.startsWith("http") ? adsConfig.monetagZoneId : `//${adsConfig.monetagZoneId}`;
         if ((window as any).Telegram?.WebApp) {
           (window as any).Telegram.WebApp.openLink(url);
         } else {

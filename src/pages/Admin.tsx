@@ -90,14 +90,14 @@ export default function AdminLayout() {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 "
+          className="absolute inset-0 bg-black/50 z-40 "
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-white/10 bg-[#151A23] flex flex-col transform transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`absolute inset-y-0 left-0 z-50 w-64 border-r border-white/10 bg-[#151A23] flex flex-col transform transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center space-x-2 text-crypto-primary">
@@ -962,6 +962,10 @@ function AdminSettings() {
               <input type="text" value={botSettingData.miniAppUrl || ""} onChange={(e) => setBotSettingData({...botSettingData, miniAppUrl: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="https://t.me/MyBot/app" />
             </div>
             <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Referral 'How it Works' Link</label>
+              <input type="text" value={botSettingData.referralHowItWorksLink || ""} onChange={(e) => setBotSettingData({...botSettingData, referralHowItWorksLink: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="https://t.me/mychannel/post" />
+            </div>
+            <div>
               <label className="block text-xs font-bold text-gray-400 mb-1">Hosting Link</label>
               <input type="text" value={botSettingData.botHostingLink || ""} onChange={(e) => setBotSettingData({...botSettingData, botHostingLink: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="https://my-app.com" />
             </div>
@@ -1036,12 +1040,12 @@ function AdminSettings() {
             ) : (
               <>
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 mb-1">Monetag Zone Id</label>
-                  <input type="text" value={adsConfig?.monetagZoneId || ""} onChange={(e) => setAdsConfig({...adsConfig, monetagZoneId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. 9955574" />
+                  <label className="block text-xs font-bold text-gray-400 mb-1">Monetag Direct Link URL</label>
+                  <input type="text" value={adsConfig?.monetagZoneId || ""} onChange={(e) => setAdsConfig({...adsConfig, monetagZoneId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. https://directlink..." />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 mb-1">Monetag Sdk</label>
-                  <input type="text" value={adsConfig?.monetagSdk || ""} onChange={(e) => setAdsConfig({...adsConfig, monetagSdk: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. show_9955574" />
+                  <label className="block text-xs font-bold text-gray-400 mb-1">Monetag Script URL (In-App Ad)</label>
+                  <input type="text" value={adsConfig?.monetagScriptUrl || ""} onChange={(e) => setAdsConfig({...adsConfig, monetagScriptUrl: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. //thubanoa.com/1?z=12345" />
                 </div>
               </>
             )}

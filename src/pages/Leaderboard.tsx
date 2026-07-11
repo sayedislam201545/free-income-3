@@ -7,6 +7,7 @@ export default function Leaderboard() {
   const [listUsers, setListUsers] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'refer' | 'running'>('refer');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
      // Fetch all users and sort locally to ensure users without the fields still appear
@@ -29,7 +30,7 @@ export default function Leaderboard() {
              const orderByField = activeTab === 'refer' ? 'referralCount' : 'vaBalance';
              
              // Sort descending
-             usersArray.sort((a, b) => b[orderByField] - a[orderByField]);
+             usersArray.sort((a, b) => Number(b[orderByField] || 0) - Number(a[orderByField] || 0));
              
              // Take top 50
              const topUsers = usersArray.slice(0, 50);
@@ -46,6 +47,7 @@ export default function Leaderboard() {
          } else {
              setListUsers([]);
          }
+         setIsLoading(false);
      }, (error) => {
          console.warn("Leaderboard fetch error:", error);
      });
@@ -58,7 +60,7 @@ export default function Leaderboard() {
   );
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-80px)] max-w-md mx-auto w-full relative(100vh-140px)] bg-gray-50 text-gray-900 pb-10 relative overflow-hidden">
+    <div className="flex flex-col min-h-screen max-w-md mx-auto w-full relative bg-gray-50 text-gray-900 pb-10 relative overflow-hidden">
       {/* Header Card */}
       <div className="bg-white rounded-[24px] p-5 border border-gray-100 shadow-sm mb-4 relative overflow-hidden">
         <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/10 blur-[40px] rounded-full pointer-events-none" />
@@ -119,7 +121,17 @@ export default function Leaderboard() {
 
       {/* Leaderboard List */}
       <div className="space-y-3">
-        {filteredUsers.map((user) => {
+        {isLoading && Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="bg-white rounded-[20px] p-3 flex items-center border border-gray-100 shadow-sm animate-pulse">
+            <div className="w-10 h-10 bg-gray-200 rounded-full shrink-0 mx-3"></div>
+            <div className="flex-1 min-w-0">
+              <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+              <div className="h-3 bg-gray-100 rounded w-1/3"></div>
+            </div>
+            <div className="w-12 h-6 bg-gray-200 rounded shrink-0"></div>
+          </div>
+        ))}
+        {!isLoading && filteredUsers.map((user) => {
           const isTop3 = user.rank <= 3;
           return (
             <div key={user.rank} className="bg-white rounded-[20px] p-3 flex items-center border border-gray-100 shadow-sm">
@@ -165,7 +177,7 @@ export default function Leaderboard() {
             </div>
           );
         })}
-        {filteredUsers.length === 0 && (
+        {!isLoading && filteredUsers.length === 0 && (
           <div className="text-center py-10 text-gray-500 text-sm font-bold">
             No users found
           </div>

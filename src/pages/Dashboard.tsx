@@ -16,6 +16,7 @@ import { playSound } from "../lib/sounds";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import AnimatedCounter from "../components/AnimatedCounter";
+import FootballLoader from "../components/FootballLoader";
 
 export default function Dashboard() {
   const user = useAuthStore((state) => state.user);
@@ -27,6 +28,81 @@ export default function Dashboard() {
   const [isWatchingBonusAd, setIsWatchingBonusAd] = useState(false);
   const [bonusAdTimer, setBonusAdTimer] = useState(15);
   const [bonusAdReward] = useState(30);
+  
+  // Referral Modal States
+  const [showReferralModal, setShowReferralModal] = useState(false);
+  const [showLoader, setShowLoader] = useState(false);
+  const [refInput, setRefInput] = useState("");
+  const [isSubmittingRef, setIsSubmittingRef] = useState(false);
+  const [refError, setRefError] = useState("");
+
+  useEffect(() => {
+     if (user && !user.referredBy && !user.hasSkippedReferral) {
+         setShowLoader(true);
+     }
+  }, [user]);
+
+  const handleReferralSubmit = async () => {
+      if (!refInput) {
+         setRefError("Please enter a referral code.");
+         return;
+      }
+      if (refInput === user?.uid) {
+         setRefError("You cannot refer yourself.");
+         return;
+      }
+      setIsSubmittingRef(true);
+      setRefError("");
+      try {
+          const { getDoc, doc, updateDoc, increment } = await import("firebase/firestore");
+          const referrerRef = doc(db, "users", refInput);
+          const referrerSnap = await getDoc(referrerRef);
+          if (!referrerSnap.exists()) {
+              setRefError("Invalid referral code.");
+              setIsSubmittingRef(false);
+              return;
+          }
+
+          const referrerData = referrerSnap.data();
+          const referrerIsVip = referrerData?.isVip && referrerData?.vipExpiry && referrerData?.vipExpiry > Date.now();
+          const rewardAmount = (user?.isVip && user?.vipExpiry && user?.vipExpiry > Date.now()) ? 275 : 250;
+          const referrerReward = referrerIsVip ? 275 : 250;
+
+          const userRef = doc(db, "users", user!.uid);
+          await updateDoc(userRef, {
+             referredBy: refInput,
+             vaBalance: increment(rewardAmount),
+             hasSkippedReferral: true
+          });
+
+          await updateDoc(referrerRef, {
+             referralCount: increment(1),
+             vaBalance: increment(referrerReward)
+          });
+
+          setShowReferralModal(false);
+          window.location.reload();
+      } catch (e) {
+          console.error(e);
+          setRefError("Failed to apply referral.");
+      } finally {
+          setIsSubmittingRef(false);
+      }
+  };
+
+  const handleSkipReferral = async () => {
+      setIsSubmittingRef(true);
+      try {
+          const { doc, updateDoc } = await import("firebase/firestore");
+          const userRef = doc(db, "users", user!.uid);
+          await updateDoc(userRef, { hasSkippedReferral: true });
+          setShowReferralModal(false);
+      } catch (e) {
+          console.error(e);
+      } finally {
+          setIsSubmittingRef(false);
+      }
+  };
 
   const slides = [
     {
@@ -147,61 +223,45 @@ export default function Dashboard() {
   };
 
   const startBonusAd = async () => {
-    // Trigger ad SDK
-    const scriptId = "ad-sdk-script";
-    let script = document.getElementById(scriptId) as HTMLScriptElement;
+    try {
+        const { getDoc, doc } = await import("firebase/firestore");
+        const snap = await getDoc(doc(db, "settings", "ads_config"));
+        if (snap.exists()) {
+            const config = snap.data();
+            if (config.monetagScriptUrl && config.monetagZoneId && config.monetagSdk) {
+                const { triggerMonetagAd } = await import("../lib/monetag");
+                triggerMonetagAd(config.monetagScriptUrl, config.monetagZoneId, config.monetagSdk);
+            }
+        }
+    } catch(e) {
+        console.error("Failed to load ad config", e);
+    }
+    
+    setShowBonusModal(false);
+    const { user: currentUser } = useAuthStore.getState();
+    if (currentUser) {
+      const { increment, updateDoc, doc, addDoc, collection } = await import("firebase/firestore");
+      await updateDoc(doc(db, "users", currentUser.uid), {
+         vaBalance: increment(bonusAdReward)
+      });
+        
+      await addDoc(collection(db, "task_history"), {
+        userId: currentUser.uid,
+        taskId: "slider_bonus_ad",
+        reward: bonusAdReward,
+        completedAt: Date.now(),
+      });
+      await addDoc(collection(db, "transactions"), {
+        userId: currentUser.uid,
+        type: "bonus",
+        amount: bonusAdReward,
+        status: "completed",
+        createdAt: Date.now(),
+        note: "Slider Bonus Ad",
+      });
 
-    const triggerAd = async () => {
-      // @ts-ignore
-      if (window.show_9955574) {
-        // @ts-ignore
-        window.show_9955574();
-      }
-      setShowBonusModal(false);
-      const { user: currentUser } = useAuthStore.getState();
-      if (currentUser) {
-        const { increment, updateDoc, doc, addDoc, collection } = await import("firebase/firestore");
-        await updateDoc(doc(db, "users", currentUser.uid), {
-           vaBalance: increment(bonusAdReward)
-        });
-  
-        await addDoc(collection(db, "task_history"), {
-          userId: currentUser.uid,
-          taskId: "slider_bonus_ad",
-          reward: bonusAdReward,
-          completedAt: Date.now(),
-        });
-        await addDoc(collection(db, "transactions"), {
-          userId: currentUser.uid,
-          type: "bonus",
-          amount: bonusAdReward,
-          status: "completed",
-          createdAt: Date.now(),
-          note: "Slider Bonus Ad",
-        });
-  
-        playSound("reward");
-        setBonusModalState({ show: true, type: "success", reward: bonusAdReward });
-      }
-    };
-
-    if (!script) {
-      script = document.createElement("script");
-      script.id = scriptId;
-      script.src = "//libtl.com/sdk.js";
-      script.setAttribute("data-zone", "9955574");
-      script.setAttribute("data-sdk", "show_9955574");
-      script.onload = () => {
-        script.setAttribute("data-loaded", "true");
-        triggerAd();
-      };
-      document.body.appendChild(script);
-    } else {
-      if (script.getAttribute("data-loaded") === "true") {
-        triggerAd();
-      } else {
-        script.addEventListener("load", triggerAd, { once: true });
-      }
+      playSound("reward");
+      setBonusModalState({ show: true, type: "success", reward: bonusAdReward });
     }
   };
 
@@ -560,6 +620,60 @@ export default function Dashboard() {
               >
                 Close
               </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showLoader && <FootballLoader onComplete={() => { setShowLoader(false); setShowReferralModal(true); }} />}
+        
+        {showReferralModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white rounded-[32px] p-6 w-full max-w-sm shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-100 rounded-full blur-3xl -z-0"></div>
+              
+              <div className="relative z-10">
+                 <div className="w-16 h-16 bg-[#9333EA] rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30 mb-6 mx-auto">
+                    <span className="text-3xl">🎁</span>
+                 </div>
+                 
+                 <h2 className="text-2xl font-black text-gray-900 text-center mb-2 tracking-tight">Welcome!</h2>
+                 <p className="text-sm text-gray-500 text-center mb-6 font-medium leading-relaxed">
+                   Please enter a valid referral code to enter the app and claim your <strong className="text-yellow-600">Free Bonus</strong>.
+                 </p>
+                 
+                 <div className="space-y-4">
+                    <div>
+                        <input 
+                           type="text" 
+                           placeholder="Enter referral code" 
+                           value={refInput}
+                           onChange={(e) => setRefInput(e.target.value)}
+                           className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-gray-900 placeholder-gray-400 text-sm font-bold focus:outline-none focus:border-[#9333EA] focus:ring-1 focus:ring-[#9333EA] transition-all text-center"
+                        />
+                        {refError && <p className="text-red-500 text-xs font-bold mt-2 text-center">{refError}</p>}
+                    </div>
+                    
+                    <button 
+                       onClick={handleReferralSubmit}
+                       disabled={isSubmittingRef || !refInput}
+                       className="w-full py-4 bg-[#8A2BE2] hover:bg-[#7926C7] text-white rounded-xl font-bold tracking-wider shadow-lg shadow-purple-500/30 transition-transform active:scale-95 disabled:opacity-60 flex items-center justify-center"
+                    >
+                       SUBMIT CODE
+                    </button>
+                 </div>
+              </div>
             </motion.div>
           </motion.div>
         )}
