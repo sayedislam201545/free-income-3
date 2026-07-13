@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+const fs = require('fs');
+const content = `import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { auth, db } from "../lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -107,7 +108,7 @@ export default function AdDetail() {
         const newDaily = currentDaily + 1;
         
         await updateDoc(userRef, {
-          [`adCampaignsWatched.${id}`]: {
+          [\`adCampaignsWatched.\${id}\`]: {
               dailyWatched: newDaily,
               lastDate: today
           },
@@ -130,7 +131,7 @@ export default function AdDetail() {
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return \`\${m.toString().padStart(2, '0')}:\${s.toString().padStart(2, '0')}\`;
   };
 
   return (
@@ -168,7 +169,7 @@ export default function AdDetail() {
             <div className="h-2.5 bg-gray-900 rounded-full overflow-hidden border border-white/5">
               <div 
                 className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-300"
-                style={{ width: `${(dailyWatched / (adsConfig.dailyAdsLimit || 50)) * 100}%` }}
+                style={{ width: \`\${(dailyWatched / (adsConfig.dailyAdsLimit || 50)) * 100}%\` }}
               />
             </div>
           </div>
@@ -259,3 +260,5 @@ export default function AdDetail() {
     </div>
   );
 }
+`;
+fs.writeFileSync('src/pages/AdDetail.tsx', content);

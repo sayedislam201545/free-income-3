@@ -17,13 +17,11 @@ export default function PremiumBackButton({
 
   const handleBack = () => {
     playPremiumClick();
-    setTimeout(() => {
-      if (window.history.length > 1 && window.history.state?.idx > 0) {
-        navigate(-1);
-      } else {
-        navigate(fallbackPath, { replace: true });
-      }
-    }, 150);
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate(fallbackPath, { replace: true });
+    }
   };
 
   // Do not show on main dashboard or bottom nav roots if we don't want to

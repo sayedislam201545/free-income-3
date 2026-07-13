@@ -25,16 +25,16 @@ export default function Spin() {
   }
 
   const prizes = [
-    { text: "10 VA", isCrypto: false },
-    { text: "10", isCrypto: true },
-    { text: "500 VA", isCrypto: false },
-    { text: "0.1", isCrypto: true },
-    { text: "100", isCrypto: true },
-    { text: "5000 VA", isCrypto: false },
-    { text: "0.01", isCrypto: true },
-    { text: "1000 VA", isCrypto: false },
-    { text: "1 VA", isCrypto: false },
-    { text: "1", isCrypto: true },
+    { text: "0 VA", amount: 0 },
+    { text: "10 VA", amount: 10 },
+    { text: "50 VA", amount: 50 },
+    { text: "70 VA", amount: 70 },
+    { text: "80 VA", amount: 80 },
+    { text: "90 VA", amount: 90 },
+    { text: "120 VA", amount: 120 },
+    { text: "150 VA", amount: 150 },
+    { text: "180 VA", amount: 180 },
+    { text: "200 VA", amount: 200 },
   ];
 
   const sliceAngle = 360 / prizes.length;
@@ -48,7 +48,6 @@ export default function Spin() {
         alert(`You have reached your daily limit of ${MAX_SPINS} spin(s). Come back tomorrow!`);
         return;
     }
-
     setIsSpinning(true);
     playSound('spin');
 
@@ -66,31 +65,28 @@ export default function Spin() {
         playSound('click');
     }, 150);
 
-    const newRotation = rotation + 360 * 5 + Math.floor(Math.random() * 360);
+    // Ensure we rotate multiple times (5 spins) and land on the prize correctly
+    const spins = 5;
+    const index = Math.floor(Math.random() * prizes.length);
+    const prize = prizes[index];
+    const amount = prize.amount;
+    
+    // Calculate the target rotation to land exactly in the middle of the selected slice
+    const stopAngle = 360 - (index * sliceAngle + sliceAngle / 2);
+    const newRotation = rotation + (360 * spins) - (rotation % 360) + stopAngle;
+    
     setRotation(newRotation);
     
     setTimeout(async () => {
       clearInterval(spinSoundInterval);
       setIsSpinning(false);
       
-      // Calculate prize based on final rotation (simplified random selection for now)
-      const index = Math.floor(Math.random() * prizes.length);
-      const prize = prizes[index];
-      const amount = parseFloat(prize.text.replace(' VA', ''));
-
-      if (user) {
+      if (user && amount > 0) {
           const { increment } = await import("firebase/firestore");
-          if (prize.isCrypto) {
-             await updateDoc(doc(db, 'users', user.uid), {
-                 usdtBalance: increment(amount)
-             });
-          } else {
-             await updateDoc(doc(db, 'users', user.uid), {
-                 vaBalance: increment(amount)
-             });
-          }
+          await updateDoc(doc(db, 'users', user.uid), {
+              vaBalance: increment(amount)
+          });
       }
-
       playSound('success');
       alert(`Congratulations! You won ${prize.text}.`);
     }, 5000);
@@ -152,7 +148,6 @@ export default function Spin() {
                       >
                         <span className="font-bold text-[13px] sm:text-[15px] text-[#6032BA] flex flex-col items-center leading-tight">
                            {prize.text}
-                           {prize.isCrypto && <span className="text-crypto-accent font-black text-lg mt-0.5 leading-none shadow-sm">₮</span>}
                         </span>
                       </div>
                     ))}
@@ -184,19 +179,6 @@ export default function Spin() {
                 ))}
             </div>
          </div>
-      </motion.div>
-
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="mt-14 mb-8 flex justify-center relative z-10 w-full"
-      >
-        <button 
-          onClick={() => navigate('/task')}
-          className="bg-white/40 backdrop-blur-md text-crypto-primary font-bold text-sm py-4 px-8 rounded-full border border-white/60 shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:bg-white/60 hover:shadow-[0_10px_40px_rgba(138,92,245,0.2)] transition-all transform hover:-translate-y-1 w-full max-w-[300px]">
-            Get more lottery chances
-        </button>
       </motion.div>
     </div>
   );

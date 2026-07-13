@@ -9,6 +9,18 @@ export default function Wallet() {
   const [tab, setTab] = useState<'deposit' | 'withdraw' | 'transfer'>('deposit');
   const user = useAuthStore((state) => state.user);
   
+  const [isUnlocked, setIsUnlocked] = useState(!user?.walletPassword);
+  const [passInput, setPassInput] = useState("");
+  const [passError, setPassError] = useState("");
+
+  const handleUnlock = () => {
+      if (passInput === user?.walletPassword) {
+          setIsUnlocked(true);
+      } else {
+          setPassError("Incorrect Password");
+      }
+  };
+  
   // Dynamic Data
   const [depositMethods, setDepositMethods] = useState<any[]>([]);
   const [withdrawMethods, setWithdrawMethods] = useState<any[]>([]);

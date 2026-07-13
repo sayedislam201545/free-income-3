@@ -1,3 +1,4 @@
+import React from 'react';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -46,6 +47,15 @@ declare global {
     google: any;
   }
 }
+
+
+const RequireReferral = ({ children }: { children: React.ReactNode }) => {
+  const user = useAuthStore((state) => state.user);
+  if (user && !user.referredBy) {
+    return <Navigate to="/refer" replace />;
+  }
+  return <>{children}</>;
+};
 
 export default function App() {
   const initAuth = useAuthStore((state) => state.initAuth);
@@ -193,21 +203,21 @@ export default function App() {
 
           <Route element={<AppLayout />}>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/task" element={<Task />} />
-            <Route path="/ads" element={<Ads />} />
+            <Route path="/task" element={<RequireReferral><Task /></RequireReferral>} />
+            <Route path="/ads" element={<RequireReferral><Ads /></RequireReferral>} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/wallet" element={<Wallet />} />
-            <Route path="/earn" element={<Earn />} />
+            <Route path="/earn" element={<RequireReferral><Earn /></RequireReferral>} />
             <Route path="/activity" element={<Activity />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/spin" element={<Spin />} />
-            <Route path="/checkin" element={<CheckIn />} />
+            <Route path="/spin" element={<RequireReferral><Spin /></RequireReferral>} />
+            <Route path="/checkin" element={<RequireReferral><CheckIn /></RequireReferral>} />
             <Route path="/notifications" element={<Notifications />} />
           </Route>
 
           {/* Without Bottom Nav */}
-          <Route path="/ads/:id" element={<AdDetail />} />
-          <Route path="/task/:id" element={<TaskDetail />} />
+          <Route path="/ads/:id" element={<RequireReferral><AdDetail /></RequireReferral>} />
+          <Route path="/task/:id" element={<RequireReferral><TaskDetail /></RequireReferral>} />
           <Route path="/language" element={<Language />} />
           <Route path="/vip" element={<VIP />} />
           <Route path="/refer" element={<Refer />} />

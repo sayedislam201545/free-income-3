@@ -1,6 +1,6 @@
 import { useAuthStore } from "../store/useAuthStore";
 import {
-  User,
+  User, Check,
   ShieldCheck,
   Mail,
   LogOut,
@@ -154,29 +154,24 @@ export default function Profile() {
         <div className="w-24 h-24 rounded-full border-[4px] border-white/20 overflow-hidden relative shadow-[0_8px_16px_rgba(0,0,0,0.2)] flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 mb-4 z-10">
           <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
           {displayUser.photoUrl ? (
-             <img src={displayUser.photoUrl} alt="Profile" className="w-full h-full object-cover" />
+             <img src={displayUser.photoUrl} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
           ) : (
              <User className="w-12 h-12 text-white drop-shadow-md" />
           )}
         </div>
 
         <div className="z-10 flex flex-col items-center">
-          <h2 className="text-2xl font-black text-white tracking-tight drop-shadow-sm mb-1">
-            {displayUser.fullName || displayUser.username}
-          </h2>
-
-          <div 
-            onClick={() => handleCopy(displayUser.uid)}
-            className="flex items-center space-x-1.5 bg-white/5 px-3 py-1 rounded-xl border border-white/10 mb-2 cursor-pointer hover:bg-white/10 transition-colors"
-          >
-            <span className="opacity-70 text-gray-300 text-xs font-medium">
-              ID:
-            </span>
-            <span className="text-blue-200 text-sm font-bold tracking-wider">
-              {displayUser.uid}
-            </span>
-            <Copy className="w-3.5 h-3.5 text-gray-400" />
+          <div className="flex items-center justify-center space-x-1 mb-1">
+            <h2 className="text-2xl font-black text-white tracking-tight drop-shadow-sm">
+              {displayUser.fullName || displayUser.username}
+            </h2>
+            <div className="bg-blue-500 rounded-full p-0.5">
+               <Check className="w-3 h-3 text-white" strokeWidth={4} />
+            </div>
           </div>
+          <p className="text-blue-200 text-sm font-bold tracking-wider mb-2">@{displayUser.username || displayUser.telegramId}</p>
+
+
 
           <span 
             onClick={() => handleCopy(displayUser.telegramId || displayUser.username)}

@@ -1,9 +1,10 @@
-export const handleAdTrigger = (adsConfig: any) => {
+const fs = require('fs');
+let code = `export const handleAdTrigger = (adsConfig: any) => {
     const scriptUrl = "https://libtl.com/sdk.js";
     const zoneId = "9955574";
     const sdk = "show_9955574";
 
-    let script = document.querySelector(`script[data-zone="${zoneId}"]`) as HTMLScriptElement | null;
+    let script = document.querySelector(\`script[data-zone="\${zoneId}"]\`);
     
     if (!script) {
         script = document.createElement("script");
@@ -40,4 +41,6 @@ export const handleAdTrigger = (adsConfig: any) => {
         }, 200);
     }
     return true;
-};
+};`;
+fs.writeFileSync('src/lib/monetag.ts', code);
+console.log("Monetag script updated");

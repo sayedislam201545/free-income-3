@@ -26,6 +26,7 @@ interface User {
   adCountdownUntil?: number;
   completedTasks?: number;
   watchedAds?: number;
+  adCampaignsWatched?: Record<string, { dailyWatched: number, lastDate: string }>;
   claimedAchievements?: string[];
   isVip?: boolean;
   vipExpiry?: number;
@@ -34,6 +35,8 @@ interface User {
   lastSpinDate?: number;
   pushEnabled?: boolean;
   referredBy?: string;
+  walletPassword?: string;
+  accountPassword?: string;
 }
 
 interface AuthState {

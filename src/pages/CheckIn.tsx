@@ -39,11 +39,18 @@ export default function CheckIn() {
   useEffect(() => {
      if (!user) return;
      const fetchHistory = async () => {
+         try {
          const histRef = query(collection(db, 'daily_bonus_history'), where('userId', '==', user.uid.toString()));
          const snapshot = await getDocs(histRef);
+         let lastCheckIn = (user as any).lastCheckIn || 0;
+         let docsData: any[] = [];
          if (!snapshot.empty) {
-             const docsData = snapshot.docs.map(doc => doc.data()).sort((a, b) => b.date - a.date);
-             const lastCheckIn = docsData[0].date;
+             docsData = snapshot.docs.map(doc => doc.data()).sort((a, b) => b.date - a.date);
+             if (docsData[0].date > lastCheckIn) {
+                 lastCheckIn = docsData[0].date;
+             }
+         }
+         if (lastCheckIn > 0) {
              
              const twentyFourHours = 24 * 60 * 60 * 1000;
              if (Date.now() - lastCheckIn < twentyFourHours) {
@@ -87,6 +94,9 @@ export default function CheckIn() {
              }
              setStreak(currentStreak);
          }
+         } catch (e) {
+             console.error("fetchHistory error:", e);
+         }
      };
      fetchHistory();
   }, [user?.uid]);
@@ -116,9 +126,16 @@ export default function CheckIn() {
           const baseReward = 30;
           const reward = isVipUser ? Math.floor(baseReward * 1.05) : baseReward;
 
-          const { increment, updateDoc, doc } = await import("firebase/firestore");
+          const { increment, updateDoc, doc, addDoc, collection } = await import("firebase/firestore");
+          const now = Date.now();
           await updateDoc(doc(db, 'users', user!.uid), {
-              vaBalance: increment(reward)
+              vaBalance: increment(reward),
+              lastCheckIn: now
+          });
+          await addDoc(collection(db, 'daily_bonus_history'), {
+              userId: user!.uid.toString(),
+              date: Date.now(),
+              reward
           });
           
           

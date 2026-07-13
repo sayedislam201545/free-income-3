@@ -1,10 +1,9 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Crypto Earning Platform</title>
-        <script>
+const fs = require('fs');
+let code = fs.readFileSync('index.html', 'utf8');
+
+const targetRegex = /<script>\s*const originalConsoleError = console\.error;[\s\S]*?<\/script>/;
+
+const replacement = `<script>
       const originalConsoleError = console.error;
       const originalConsoleWarn = console.warn;
       
@@ -44,33 +43,8 @@
               e.stopImmediatePropagation();
           }
       });
-    </script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script>
-      // Mock CloudStorage methods to prevent errors from third-party scripts
-      if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.CloudStorage) {
-          const fakeMethod = function() {
-              const callback = arguments[arguments.length - 1];
-              if (typeof callback === 'function') {
-                  callback(null, null);
-              } else if (typeof callback === 'undefined' && arguments.length > 0 && typeof arguments[arguments.length - 2] === 'function') {
-                  arguments[arguments.length - 2](null, null);
-              }
-          };
-          window.Telegram.WebApp.CloudStorage.setItem = fakeMethod;
-          window.Telegram.WebApp.CloudStorage.getItem = fakeMethod;
-          window.Telegram.WebApp.CloudStorage.getItems = fakeMethod;
-          window.Telegram.WebApp.CloudStorage.removeItem = fakeMethod;
-          window.Telegram.WebApp.CloudStorage.removeItems = fakeMethod;
-          window.Telegram.WebApp.CloudStorage.getKeys = fakeMethod;
-      }
-    </script>
-    
-      <script src='//libtl.com/sdk.js' data-zone='9955574' data-sdk='show_9955574'></script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+    </script>`;
 
+code = code.replace(targetRegex, replacement);
+fs.writeFileSync('index.html', code);
+console.log("Updated cleanly.");

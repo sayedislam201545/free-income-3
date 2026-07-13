@@ -1,4 +1,4 @@
-import { User, Hash, Smartphone, Mail, Lock, Calendar, Eye, Sparkles, Bell } from "lucide-react";
+import { User, Hash, Smartphone, Mail, Lock, Calendar, Eye, EyeOff, Sparkles, Bell, Key, Save } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useNavigate } from "react-router-dom";
 import PremiumBackButton from "../components/PremiumBackButton";
@@ -9,8 +9,43 @@ import { db } from "../lib/firebase";
 export default function AccountSettings() {
   const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
+  
+  const [isUnlocked, setIsUnlocked] = useState(!user?.accountPassword);
+  const [passInput, setPassInput] = useState("");
+  const [passError, setPassError] = useState("");
+
+  const handleUnlock = () => {
+      if (passInput === user?.accountPassword) {
+          setIsUnlocked(true);
+      } else {
+          setPassError("Incorrect Password");
+      }
+  };
   const [pushEnabled, setPushEnabled] = useState(user?.pushEnabled ?? true);
   const [updating, setUpdating] = useState(false);
+  const [showWalletPass, setShowWalletPass] = useState(false);
+  const [showAccountPass, setShowAccountPass] = useState(false);
+  const [walletPass, setWalletPass] = useState(user?.walletPassword || "");
+  const [accountPass, setAccountPass] = useState(user?.accountPassword || "");
+  const [savingPass, setSavingPass] = useState(false);
+
+  const savePasswords = async () => {
+    if (!user || savingPass) return;
+    setSavingPass(true);
+    try {
+      await updateDoc(doc(db, "users", user.uid), {
+        walletPassword: walletPass,
+        accountPassword: accountPass
+      });
+      useAuthStore.getState().updateUser({ walletPassword: walletPass, accountPassword: accountPass });
+      alert("Passwords saved!");
+    } catch(e) {
+      console.error(e);
+      alert("Failed to save passwords");
+    } finally {
+      setSavingPass(false);
+    }
+  };
 
   const togglePushNotifications = async () => {
     if (!user || updating) return;
@@ -34,6 +69,36 @@ export default function AccountSettings() {
   const handleBack = () => {
     navigate(-1);
   };
+
+  if (!isUnlocked) {
+    return (
+      <div className="flex flex-col min-h-screen bg-[#F8F9FE] items-center justify-center p-4">
+         <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-xl flex flex-col items-center">
+            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6">
+               <Key className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Settings Locked</h2>
+            <p className="text-sm text-gray-500 mb-6 text-center">Please enter your account password.</p>
+            
+            <input 
+               type="password" 
+               value={passInput}
+               onChange={(e) => { setPassInput(e.target.value); setPassError(""); }}
+               placeholder="Enter password..."
+               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 mb-2 focus:outline-none focus:border-red-500 font-bold tracking-widest text-center"
+            />
+            {passError && <p className="text-red-500 text-xs font-bold w-full text-center mb-4">{passError}</p>}
+            
+            <button 
+               onClick={handleUnlock}
+               className="w-full bg-red-600 text-white font-bold py-3.5 rounded-xl mt-4 active:scale-95 transition-transform"
+            >
+               UNLOCK
+            </button>
+         </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-80px)] max-w-md mx-auto w-full relative(100vh-80px)] bg-[#F8F9FE] text-gray-900 -mx-4 -my-6 px-4 py-8 relative overflow-hidden">
@@ -86,6 +151,17 @@ export default function AccountSettings() {
           </div>
         </div>
 
+        {/* User ID */}
+        <div className="bg-white rounded-2xl p-4 flex items-center border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center mr-4 border border-gray-200/50">
+            <Hash className="w-6 h-6 text-gray-600" />
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">User ID</p>
+            <p className="font-bold text-sm text-gray-900 truncate tracking-wider">{user?.uid || '---'}</p>
+          </div>
+        </div>
+        
         {/* Email Address */}
         <div className="bg-white rounded-2xl p-4 flex items-center border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
           <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center mr-4 border border-blue-200/50">
@@ -97,19 +173,58 @@ export default function AccountSettings() {
           </div>
         </div>
 
-        {/* Security Password */}
-        <div className="bg-white rounded-2xl p-4 flex items-center border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center mr-4 border border-amber-200/50">
-            <Lock className="w-6 h-6 text-amber-600" />
+        {/* Wallet Password */}
+        <div className="bg-white rounded-2xl p-4 flex flex-col border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+              <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center mr-4 border border-amber-200/50 shrink-0">
+                <Lock className="w-6 h-6 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Wallet Password</p>
+                <div className="flex items-center">
+                    <input 
+                      type={showWalletPass ? "text" : "password"} 
+                      value={walletPass} 
+                      onChange={(e) => setWalletPass(e.target.value)}
+                      placeholder="Set password for Wallet"
+                      className="bg-transparent border-none font-bold text-base text-gray-900 tracking-widest outline-none w-full placeholder-gray-300"
+                    />
+                </div>
+              </div>
+              <button onClick={() => setShowWalletPass(!showWalletPass)} className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-900 transition-colors border border-gray-200 shrink-0 ml-2">
+                {showWalletPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
           </div>
-          <div className="flex-1">
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Security Password</p>
-            <p className="font-bold text-2xl text-amber-500 tracking-[0.2em] -mt-1 leading-none">........</p>
-          </div>
-          <button className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-900 transition-colors border border-gray-200">
-            <Eye className="w-5 h-5" />
-          </button>
         </div>
+
+        {/* Account Password */}
+        <div className="bg-white rounded-2xl p-4 flex flex-col border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center">
+              <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-red-50 to-rose-50 flex items-center justify-center mr-4 border border-red-200/50 shrink-0">
+                <Key className="w-6 h-6 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">ACCOUNT Password</p>
+                <div className="flex items-center">
+                    <input 
+                      type={showAccountPass ? "text" : "password"} 
+                      value={accountPass} 
+                      onChange={(e) => setAccountPass(e.target.value)}
+                      placeholder="Set password for Settings"
+                      className="bg-transparent border-none font-bold text-base text-gray-900 tracking-widest outline-none w-full placeholder-gray-300"
+                    />
+                </div>
+              </div>
+              <button onClick={() => setShowAccountPass(!showAccountPass)} className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-900 transition-colors border border-gray-200 shrink-0 ml-2">
+                {showAccountPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+          </div>
+        </div>
+
+        <button onClick={savePasswords} disabled={savingPass} className="w-full bg-[#9333EA] text-white font-bold py-4 rounded-2xl shadow-lg flex items-center justify-center space-x-2 active:scale-95 transition-transform disabled:opacity-50">
+           <Save className="w-5 h-5" />
+           <span>{savingPass ? "SAVING..." : "SAVE PASSWORDS"}</span>
+        </button>
 
         {/* Registration Date */}
         <div className="bg-white rounded-2xl p-4 flex items-center border border-gray-100 shadow-sm hover:shadow-md transition-shadow">

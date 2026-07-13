@@ -3,10 +3,69 @@ import { useAuthStore } from "../store/useAuthStore";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { Coins, Pickaxe, CheckCircle2, Play, Timer, Sparkles, Video } from "lucide-react";
+import { useAdTracker } from "../hooks/useAdTracker";
+
+declare global {
+    interface Window {
+        show_9955574?: () => void;
+    }
+}
 
 export default function Earn() {
   const user = useAuthStore((state) => state.user);
   const [status, setStatus] = useState<'idle' | 'mining' | 'claimable'>('idle');
+  const [minedSoFar, setMinedSoFar] = useState(0);
+  const [pendingAction, setPendingAction] = useState<'start' | 'claim' | null>(null);
+
+  // Preload ad script
+  useEffect(() => {
+    const scriptId = 'ad-sdk-script';
+    if (!document.getElementById(scriptId)) {
+        const script = document.createElement('script');
+        script.id = scriptId;
+        script.src = '//libtl.com/sdk.js';
+        script.setAttribute('data-zone', '9955574');
+        script.setAttribute('data-sdk', 'show_9955574');
+        document.body.appendChild(script);
+    }
+  }, []);
+
+  const { startTracking } = useAdTracker(async () => {
+      if (pendingAction === 'start') {
+          if (!user) return;
+          const end = new Date(Date.now() + MINING_DURATION);
+          await updateDoc(doc(db, 'users', user.uid), {
+            miningStartTime: new Date().toISOString(),
+            miningEndTime: end.toISOString(),
+          });
+          setStatus('mining');
+          setEndTime(end);
+          setPendingAction(null);
+      } else if (pendingAction === 'claim') {
+          if (!user) return;
+          const userRef = doc(db, 'users', user.uid);
+          const snap = await getDoc(userRef);
+          if (snap.exists()) {
+            const isVipUser = user.isVip && user.vipExpiry && user.vipExpiry > Date.now();
+            const reward = isVipUser ? Math.floor(MINING_REWARD * 1.05) : MINING_REWARD;
+            
+            const { increment } = await import("firebase/firestore");
+            await updateDoc(userRef, {
+              vaBalance: increment(reward),
+              miningStartTime: null,
+              miningEndTime: null,
+            });
+            alert("Claimed " + reward + " VA tokens successfully!");
+          }
+          
+          setStatus('idle');
+          setEndTime(null);
+          setProgress(0);
+          setMinedSoFar(0);
+          setTimeLeft('24:00:00');
+          setPendingAction(null);
+      }
+  });
   const [endTime, setEndTime] = useState<Date | null>(null);
   const [timeLeft, setTimeLeft] = useState('24:00:00');
   const [progress, setProgress] = useState(0);
@@ -61,65 +120,28 @@ export default function Earn() {
           
           const elapsed = now - start;
           setProgress((elapsed / MINING_DURATION) * 100);
+          setMinedSoFar((elapsed / MINING_DURATION) * MINING_REWARD);
         }
       }, 1000);
       return () => clearInterval(interval);
     }
   }, [status, endTime]);
 
-  const simulateAd = (callback: () => void) => {
-    setShowAd(true);
-    setAdProgress(0);
-    const interval = setInterval(() => {
-      setAdProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setShowAd(false);
-          callback();
-          return 100;
-        }
-        return prev + 2; // ~5 seconds ad
-      });
-    }, 100);
-  };
 
   const handleStartEarning = () => {
-    simulateAd(async () => {
-      if (!user) return;
-      const end = new Date(Date.now() + MINING_DURATION);
-      await updateDoc(doc(db, 'users', user.uid), {
-        miningStartTime: new Date().toISOString(),
-        miningEndTime: end.toISOString(),
-      });
-      setStatus('mining');
-      setEndTime(end);
-    });
+    setPendingAction('start');
+    if (window.show_9955574) {
+        window.show_9955574();
+    }
+    startTracking(15);
   };
 
   const handleClaim = () => {
-    simulateAd(async () => {
-      if (!user) return;
-      
-      const userRef = doc(db, 'users', user.uid);
-      const snap = await getDoc(userRef);
-      if (snap.exists()) {
-        const isVipUser = user.isVip && user.vipExpiry && user.vipExpiry > Date.now();
-        const reward = isVipUser ? Math.floor(MINING_REWARD * 1.05) : MINING_REWARD;
-        
-        const { increment } = await import("firebase/firestore");
-        await updateDoc(userRef, {
-          vaBalance: increment(reward),
-          miningStartTime: null,
-          miningEndTime: null,
-        });
-        alert(`Claimed ${reward} VA tokens successfully!` + (isVipUser ? ' (VIP +5%)' : ''));
-      }
-      
-      setStatus('idle');
-      setEndTime(null);
-      setProgress(0);
-      setTimeLeft('24:00:00');
-    });
+    setPendingAction('claim');
+    if (window.show_9955574) {
+        window.show_9955574();
+    }
+    startTracking(15);
   };
 
   return (
@@ -181,7 +203,7 @@ export default function Earn() {
                     <Sparkles className="w-12 h-12 text-yellow-300 drop-shadow-md" />
                   </div>
                   <span className="text-white font-black text-xl tracking-wider drop-shadow-md">{timeLeft}</span>
-                  <span className="text-white/80 text-[10px] font-bold tracking-widest uppercase mt-1">Mining Active</span>
+                  <span className="text-white/80 text-[10px] font-bold tracking-widest uppercase mt-1">Mining: {minedSoFar.toFixed(4)} VA</span>
                 </>
              )}
 
@@ -197,10 +219,7 @@ export default function Earn() {
 
       {/* Action Area */}
       <div className="w-full max-w-sm relative z-10">
-        <div className="bg-white rounded-3xl p-6 border-2 border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-center mb-6">
-          <p className="text-gray-500 text-sm font-medium mb-1">Current Reward Rate</p>
-          <h3 className="text-3xl font-black text-[#2C334A] tracking-tight">{MINING_REWARD} <span className="text-lg text-gray-400 font-bold">VA / 24H</span></h3>
-        </div>
+
 
         {status === 'idle' && (
           <button 
