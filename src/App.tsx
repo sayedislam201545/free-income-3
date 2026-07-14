@@ -16,6 +16,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./lib/firebase";
 import AppLayout from "./components/layout/AppLayout";
+import GlobalUI from "./components/GlobalUI";
 import Dashboard from "./pages/Dashboard";
 import Wallet from "./pages/Wallet";
 import Earn from "./pages/Earn";
@@ -48,6 +49,15 @@ declare global {
   }
 }
 
+
+
+const RequireAdmin = ({ children }: { children: React.ReactNode }) => {
+  const user = useAuthStore((state) => state.user);
+  if (!user || (user.uid !== "12Mz6ut6CSah4ZIUfUYbZzdsm5J2" && user.uid !== "z92DRLkGrpNZea5HpWIiHTC1QGa2" && user.role !== "super_admin" && user.role !== "admin")) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
 
 const RequireReferral = ({ children }: { children: React.ReactNode }) => {
   const user = useAuthStore((state) => state.user);
@@ -197,9 +207,10 @@ export default function App() {
         }
       `}</style>
       <div id="google_translate_element" style={{ display: "none" }}></div>
+      <GlobalUI />
       <BrowserRouter>
         <Routes>
-          <Route path="/admin/*" element={<AdminLayout />} />
+          <Route path="/admin/*" element={<RequireAdmin><AdminLayout /></RequireAdmin>} />
 
           <Route element={<AppLayout />}>
             <Route path="/" element={<Dashboard />} />

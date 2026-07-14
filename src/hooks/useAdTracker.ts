@@ -1,3 +1,4 @@
+import { useUIStore } from '../store/useUIStore';
 import { useState, useEffect, useCallback } from 'react';
 
 export function useAdTracker(
@@ -21,7 +22,7 @@ export function useAdTracker(
       if (onFail) {
         onFail(Math.floor(timeSpent));
       } else {
-        alert(`আপনি ${requiredTime} সেকেন্ড এর আগেই বের হয়ে এসেছেন তাই আপবার এড টাকে কাউন্ড করা হয় নাই!\nআপনি দেখেছেন: ${Math.floor(timeSpent)} সেকেন্ড`);
+        useUIStore.getState().addToast(`আপনি ${requiredTime} সেকেন্ড এর আগেই বের হয়ে এসেছেন তাই আপবার এড টাকে কাউন্ড করা হয় নাই!\nআপনি দেখেছেন: ${Math.floor(timeSpent)} সেকেন্ড`);
       }
     }
   }, [isTracking, startTime, requiredTime, onSuccess, onFail]);
@@ -71,7 +72,7 @@ export function useAdTracker(
       if (onFail) {
         onFail(Math.floor(timeSpent));
       } else {
-        alert(`আপনি ${requiredTime} সেকেন্ড এর আগেই বের হয়ে এসেছেন তাই আপবার এড টাকে কাউন্ড করা হয় নাই!\nআপনি দেখেছেন: ${Math.floor(timeSpent)} সেকেন্ড`);
+        useUIStore.getState().addToast(`আপনি ${requiredTime} সেকেন্ড এর আগেই বের হয়ে এসেছেন তাই আপবার এড টাকে কাউন্ড করা হয় নাই!\nআপনি দেখেছেন: ${Math.floor(timeSpent)} সেকেন্ড`);
       }
   };
 

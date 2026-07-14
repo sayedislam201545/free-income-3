@@ -1,3 +1,4 @@
+import { useUIStore } from '../store/useUIStore';
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -45,7 +46,7 @@ export default function Spin() {
   const spinWheel = async () => {
     if (isSpinning) return;
     if (spinsToday >= MAX_SPINS) {
-        alert(`You have reached your daily limit of ${MAX_SPINS} spin(s). Come back tomorrow!`);
+        useUIStore.getState().addToast(`You have reached your daily limit of ${MAX_SPINS} spin(s). Come back tomorrow!`);
         return;
     }
     setIsSpinning(true);
@@ -88,7 +89,7 @@ export default function Spin() {
           });
       }
       playSound('success');
-      alert(`Congratulations! You won ${prize.text}.`);
+      useUIStore.getState().addToast(`Congratulations! You won ${prize.text}.`);
     }, 5000);
   };
 

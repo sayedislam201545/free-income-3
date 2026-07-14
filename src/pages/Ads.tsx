@@ -1,3 +1,4 @@
+import { useUIStore } from '../store/useUIStore';
 import { Video } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -21,10 +22,33 @@ export default function Ads() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const [tasks, setTasks] = useState<any[]>(HARDCODED_ADS);
+  const [adsBoxes, setAdsBoxes] = useState<any[]>([]);
+  const [adsConfig, setAdsConfig] = useState<any>({ dailyAdsLimit: 50 });
 
   const isVipUser = user?.isVip && user?.vipExpiry && user?.vipExpiry > Date.now();
 
   useEffect(() => {
+    const fetchBoxesAndConfig = async () => {
+      try {
+        const snap = await import("firebase/firestore").then(m => m.getDoc(m.doc(db, "settings", "ads_boxes")));
+        if (snap.exists()) {
+          setAdsBoxes(snap.data().boxes || []);
+        }
+        
+        const configSnap = await import("firebase/firestore").then(m => m.getDoc(m.doc(db, "settings", "ads_config")));
+        if (configSnap.exists()) {
+            const data = configSnap.data();
+            const specificConfig = isVipUser ? data.vipUser : data.normalUser;
+            if (specificConfig) {
+               setAdsConfig({ ...data, ...specificConfig });
+            } else {
+               setAdsConfig(data);
+            }
+        }
+      } catch (e) {}
+    };
+    fetchBoxesAndConfig();
+    
     const adsRef = collection(db, 'ads');
     const q = query(adsRef, where("active", "==", true));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -67,12 +91,28 @@ export default function Ads() {
          </h2>
       </div>
       
+      
+      {adsBoxes.filter(b => b.active && (b.target === "all" || (isVipUser ? b.target === "vip" : b.target === "normal"))).length > 0 && (
+        <div className="mb-8 space-y-4 px-1">
+           <h3 className="font-bold text-gray-700 text-lg">Promoted Offers</h3>
+           {adsBoxes.filter(b => b.active && (b.target === "all" || (isVipUser ? b.target === "vip" : b.target === "normal"))).map(b => (
+             <div key={b.id} onClick={() => { if(b.url) window.open(b.url, '_blank') }} className="bg-white rounded-[24px] overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-shadow relative">
+                {b.photo && <img src={b.photo} alt={b.title} className="w-full h-32 object-cover" />}
+                <div className="p-4">
+                  <h4 className="font-bold text-[#2C334A]">{b.title}</h4>
+                </div>
+                <div className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm">SPONSORED</div>
+             </div>
+           ))}
+        </div>
+      )}
+      
       <div className="grid grid-cols-3 gap-4 mb-24 px-1">
         {tasks.map((task, idx) => {
           const emoji = AD_EMOJIS[idx % AD_EMOJIS.length];
           const campaignId = task.fbId || task.id;
           let watchedCount = 0;
-          const limit = 50;
+          const limit = adsConfig.dailyAdsLimit || 50;
           if (user && user.adCampaignsWatched && user.adCampaignsWatched[campaignId]) {
              const data = user.adCampaignsWatched[campaignId];
              if (data.lastDate === new Date().toDateString()) {
@@ -89,7 +129,7 @@ export default function Ads() {
               onClick={() => {
                 if (!task.active) return;
                 if (idx >= 3 && !isVipUser) {
-                   alert("Please buy a VIP plan to access this ad campaign!");
+                   useUIStore.getState().addToast("Please buy a VIP plan to access this ad campaign!");
                    navigate("/vip");
                    return;
                 }

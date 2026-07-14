@@ -37,53 +37,12 @@ import {
 } from "firebase/firestore";
 import { useEffect } from "react";
 import PremiumBackButton from "../components/PremiumBackButton";
+import { useUIStore } from "../store/useUIStore";
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const generateAdminPDF = async () => {
-    try {
-      const docPdf = new jsPDF();
-      docPdf.setFontSize(22);
-      docPdf.text("Admin System Activity Summary", 20, 20);
-
-      docPdf.setFontSize(14);
-      docPdf.text("Generated on: " + new Date().toLocaleString(), 20, 30);
-
-      docPdf.setFontSize(12);
-      let yPos = 50;
-
-      // Fetch summary stats
-      const usersSnap = await getDocs(collection(db, "users"));
-      const tasksSnap = await getDocs(collection(db, "tasks"));
-      const txSnap = await getDocs(collection(db, "transactions"));
-
-      docPdf.text(`Total Users: ${usersSnap.size}`, 20, yPos);
-      yPos += 10;
-      docPdf.text(`Total Tasks: ${tasksSnap.size}`, 20, yPos);
-      yPos += 10;
-      docPdf.text(`Total Transactions: ${txSnap.size}`, 20, yPos);
-      yPos += 20;
-
-      docPdf.text("Recent Transactions (Last 5):", 20, yPos);
-      yPos += 10;
-      
-      const recentTx = txSnap.docs
-        .map(d => d.data())
-        .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-        .slice(0, 5);
-
-      recentTx.forEach((tx: any, index) => {
-         docPdf.text(`${index + 1}. [${tx.type || 'Unknown'}] Amount: ${tx.amount || 0} Status: ${tx.status || 'N/A'}`, 20, yPos);
-         yPos += 10;
-      });
-
-      docPdf.save(`Admin_Activity_Summary_${new Date().getTime()}.pdf`);
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      alert("Failed to generate PDF. Check console for details.");
-    }
-  };
+  
 
   return (
     <div className="flex flex-col h-screen max-w-md mx-auto w-full relative bg-[#0B0E14] text-white">
@@ -121,16 +80,16 @@ export default function AdminLayout() {
             { name: "Users & VIP", icon: Users, path: "/admin/users" },
             { name: "Resources", icon: Upload, path: "/admin/payments" },
             { name: "Settings", icon: Settings, path: "/admin/settings" },
-            { name: "Activity Summary (PDF)", icon: FileText, path: "#", onClick: generateAdminPDF },
+            
             { name: "Exit Admin", icon: X, path: "/", textClass: "text-red-400" },
           ].map((item) => (
             <Link
               key={item.name}
               to={item.path}
               onClick={(e) => {
-                if (item.onClick) {
+                if ((item as any).onClick) {
                    e.preventDefault();
-                   item.onClick();
+                   (item as any).onClick();
                 }
                 setSidebarOpen(false);
               }}
@@ -448,7 +407,7 @@ function AdminTasks() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const handleSaveTask = async () => {
-    if (!newTask.title) return alert("Title required");
+    if (!newTask.title) return useUIStore.getState().addToast("Title required");
 
     if (editingId) {
       await updateDoc(doc(db, "tasks", editingId), {
@@ -502,8 +461,20 @@ function AdminTasks() {
     await updateDoc(doc(db, "tasks", task.id), { active: !task.active });
   };
 
-  const handleDelete = async (id: string) => {
-    await deleteDoc(doc(db, "tasks", id));
+  const handleDelete = (id: string) => {
+    const { showConfirm, addToast } = useUIStore.getState();
+    showConfirm({
+      title: "Delete Task",
+      message: "Are you sure you want to delete this task? This action cannot be undone.",
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, "tasks", id));
+          addToast("Task deleted successfully", "success");
+        } catch(e) {
+          addToast("Failed to delete task", "error");
+        }
+      }
+    });
   };
 
   return (
@@ -718,6 +689,50 @@ function AdminTasks() {
   );
 }
 function AdminSettings() {
+  const generateAdminPDF = async () => {
+    try {
+      const docPdf = new jsPDF();
+      docPdf.setFontSize(22);
+      docPdf.text("Admin System Activity Summary", 20, 20);
+
+      docPdf.setFontSize(14);
+      docPdf.text("Generated on: " + new Date().toLocaleString(), 20, 30);
+
+      docPdf.setFontSize(12);
+      let yPos = 50;
+
+      // Fetch summary stats
+      const usersSnap = await getDocs(collection(db, "users"));
+      const tasksSnap = await getDocs(collection(db, "tasks"));
+      const txSnap = await getDocs(collection(db, "transactions"));
+
+      docPdf.text(`Total Users: ${usersSnap.size}`, 20, yPos);
+      yPos += 10;
+      docPdf.text(`Total Tasks: ${tasksSnap.size}`, 20, yPos);
+      yPos += 10;
+      docPdf.text(`Total Transactions: ${txSnap.size}`, 20, yPos);
+      yPos += 20;
+
+      docPdf.text("Recent Transactions (Last 5):", 20, yPos);
+      yPos += 10;
+      
+      const recentTx = txSnap.docs
+        .map(d => d.data())
+        .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 5);
+
+      recentTx.forEach((tx: any, index) => {
+         docPdf.text(`${index + 1}. [${tx.type || 'Unknown'}] Amount: ${tx.amount || 0} Status: ${tx.status || 'N/A'}`, 20, yPos);
+         yPos += 10;
+      });
+
+      docPdf.save(`Admin_Activity_Summary_${new Date().getTime()}.pdf`);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      useUIStore.getState().addToast("Failed to generate PDF. Check console for details.");
+    }
+  };
+
   const [editing, setEditing] = useState<string | null>(null);
   const [adminTab, setAdminTab] = useState<"add" | "added">("added");
   const [editSupportId, setEditSupportId] = useState<number | null>(null);
@@ -734,7 +749,7 @@ function AdminSettings() {
     not: 10,
     bnb: 0.0001,
   });
-  const [botSettingData, setBotSettingData] = useState<any>({ botUsername: "", botToken: "", botHostingLink: "", miniAppUrl: "" });
+  const [botSettingData, setBotSettingData] = useState<any>({ botUsername: "", botToken: "", botHostingLink: "", miniAppUrl: "", paymentChannelId: "", othersChannelId: "" });
   const [developerData, setDeveloperData] = useState<any>({
     name: "Md Sayed Islam",
     role: "Lead Developer & Architect",
@@ -779,7 +794,7 @@ function AdminSettings() {
         } else if (key === "coin_values") {
           setCoinValues({ ...coinValues, ...data });
         } else if (key === "bot_setting") {
-          setBotSettingData(data || { botUsername: "", botToken: "", botHostingLink: "", miniAppUrl: "" });
+          setBotSettingData(data || { botUsername: "", botToken: "", botHostingLink: "", miniAppUrl: "", paymentChannelId: "", othersChannelId: "" });
         } else if (key === "developer_profile") {
           if (data.name) setDeveloperData(data);
         } else if (key === "support") {
@@ -805,14 +820,41 @@ function AdminSettings() {
   const handleSave = async (stayOpen: boolean = false) => {
     if (editing) {
       try {
-        if (editing === "ads_rewards_config") {
-          await setDoc(doc(db, "settings", "ads_config"), adsConfig, { merge: true });
-          await setDoc(doc(db, "settings", "rewards_config"), rewardsConfig, { merge: true });
-        } else if (editing === "coin_values") {
-          await setDoc(doc(db, "settings", "coin_values"), coinValues, {
-            merge: true,
-          });
-        } else if (editing === "bot_setting") {
+        
+if (editing === "ads_rewards_config") {
+      return (
+        <AdsRewardsEditor
+          onClose={() => setEditing(null)}
+          onSave={async (adsConfig, rewardsConfig, adsBoxes) => {
+            try {
+              await setDoc(doc(db, "settings", "ads_config"), adsConfig, { merge: true });
+              await setDoc(doc(db, "settings", "rewards_config"), rewardsConfig, { merge: true });
+              await setDoc(doc(db, "settings", "ads_boxes"), { boxes: adsBoxes }, { merge: true });
+              useUIStore.getState().addToast("Saved Settings!");
+              setEditing(null);
+            } catch (e) {
+              useUIStore.getState().addToast("Failed to save", "error");
+            }
+          }}
+          initialAdsConfig={adsConfig}
+          initialRewardsConfig={rewardsConfig}
+        />
+      );
+    }
+ if (editing === "coin_values") {
+      return (
+        <CoinValuesEditor
+          onClose={() => setEditing(null)}
+          onSave={async (values) => {
+            await setDoc(doc(db, "settings", "coin_values"), values, { merge: true });
+            useUIStore.getState().addToast("Saved!");
+            setEditing(null);
+          }}
+          initialValues={coinValues}
+        />
+      );
+    }
+ if (editing === "bot_setting") {
         await setDoc(doc(db, "settings", "bot_setting"), botSettingData);
       } else if (editing === "developer_profile") {
           await setDoc(
@@ -843,7 +885,7 @@ function AdminSettings() {
             { merge: true },
           );
         }
-        alert("Saved!");
+        useUIStore.getState().addToast("Saved!");
         if (!stayOpen) setEditing(null);
       } catch (e) {
         console.warn("Save error", e);
@@ -873,10 +915,10 @@ function AdminSettings() {
               content: editContent,
             });
           }
-          alert("Saved!");
+          useUIStore.getState().addToast("Saved!");
           if (!stayOpen) setEditing(null);
         } catch (err) {
-          alert("Failed to save");
+          useUIStore.getState().addToast("Failed to save");
         }
       }
     }
@@ -957,15 +999,30 @@ function AdminSettings() {
               <label className="block text-xs font-bold text-gray-400 mb-1">Mini App Link</label>
               <input type="text" value={botSettingData.miniAppUrl || ""} onChange={(e) => setBotSettingData({...botSettingData, miniAppUrl: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="https://t.me/MyBot/app" />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Referral 'How it Works' Link</label>
-              <input type="text" value={botSettingData.referralHowItWorksLink || ""} onChange={(e) => setBotSettingData({...botSettingData, referralHowItWorksLink: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="https://t.me/mychannel/post" />
-            </div>
+            
             <div>
               <label className="block text-xs font-bold text-gray-400 mb-1">Hosting Link</label>
               <input type="text" value={botSettingData.botHostingLink || ""} onChange={(e) => setBotSettingData({...botSettingData, botHostingLink: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="https://my-app.com" />
             </div>
-            <button onClick={() => handleSave(false)} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg mt-6">
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Payment Channel ID</label>
+              <input type="text" value={botSettingData.paymentChannelId || ""} onChange={(e) => setBotSettingData({...botSettingData, paymentChannelId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="@my_payment_channel or -100xxxxx" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Adars (Others) Message Channel ID</label>
+              <input type="text" value={botSettingData.othersChannelId || ""} onChange={(e) => setBotSettingData({...botSettingData, othersChannelId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="@my_updates_channel or -100xxxxx" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Imgbb API Token</label>
+              <input type="text" value={botSettingData.imgbbApiToken || ""} onChange={(e) => setBotSettingData({...botSettingData, imgbbApiToken: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="Enter Imgbb API Token" />
+            </div>
+            <button onClick={() => {
+              if (!botSettingData.botUsername || !botSettingData.botToken || !botSettingData.miniAppUrl || !botSettingData.botHostingLink || !botSettingData.paymentChannelId || !botSettingData.othersChannelId) {
+                useUIStore.getState().addToast("Please fill all fields correctly to enable the bot.");
+                return;
+              }
+              handleSave(false);
+            }} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg mt-6">
               Save Settings
             </button>
           </div>
@@ -1255,13 +1312,11 @@ function AdminSettings() {
                           </button>
                           <button
                             onClick={() => {
-                              if (window.confirm("Delete this agent?")) {
-                                setSupportAgents(
-                                  supportAgents.filter(
-                                    (a) => a.id !== agent.id,
-                                  ),
-                                );
-                              }
+                              if (true) {
+    const updatedAgents = supportAgents.filter(a => a.id !== agent.id);
+    setSupportAgents(updatedAgents);
+    setDoc(doc(db, "settings", "support"), { agents: updatedAgents }, { merge: true });
+  }
                             }}
                             className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors"
                           >
@@ -1419,7 +1474,7 @@ function AdminSettings() {
                       (a) => a.id === editSupportId,
                     );
                     if (!currentAgent?.name.trim()) {
-                      alert("Please enter a name before saving.");
+                      useUIStore.getState().addToast("Please enter a name before saving.");
                       return;
                     }
                     await handleSave(true);
@@ -1545,11 +1600,11 @@ function AdminSettings() {
                           </button>
                           <button
                             onClick={() => {
-                              if (window.confirm("Delete this VIP plan?")) {
-                                setVipPlans(
-                                  vipPlans.filter((p) => p.id !== plan.id),
-                                );
-                              }
+                              if (true) {
+    const updatedPlans = vipPlans.filter(p => p.id !== plan.id);
+    setVipPlans(updatedPlans);
+    setDoc(doc(db, "settings", "vip_plans"), { plans: updatedPlans.filter((p: any) => (p.title || p.name || "").trim() !== "") }, { merge: true });
+  }
                             }}
                             className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors"
                           >
@@ -1851,7 +1906,7 @@ function AdminSettings() {
                     if (
                       !(currentPlan?.title || currentPlan?.name || "").trim()
                     ) {
-                      alert("Please enter a plan title before saving.");
+                      useUIStore.getState().addToast("Please enter a plan title before saving.");
                       return;
                     }
                     await handleSave(true);
@@ -2026,13 +2081,13 @@ function AdminSubmissions() {
             vaBalance: (userData.vaBalance || 0) + reward,
           });
         }
-        alert(`Submission approved! ${reward} VA rewarded to user.`);
+        useUIStore.getState().addToast(`Submission approved! ${reward} VA rewarded to user.`);
       } else if (newStatus === "rejected") {
-        alert("Submission rejected.");
+        useUIStore.getState().addToast("Submission rejected.");
       }
     } catch (e) {
       console.error(e);
-      alert("Error updating status.");
+      useUIStore.getState().addToast("Error updating status.");
     }
   };
 
@@ -2206,10 +2261,10 @@ function AdminUsers() {
       // Update local state temporarily so UI reflects before snap
       setSelectedUser({ ...selectedUser, vaBalance: newCoins });
       setCoinAmount("");
-      alert(`Successfully updated coins! New balance: ${newCoins}`);
+      useUIStore.getState().addToast(`Successfully updated coins! New balance: ${newCoins}`);
     } catch (e) {
       console.error(e);
-      alert("Error updating coins");
+      useUIStore.getState().addToast("Error updating coins");
     }
   };
 
@@ -2223,17 +2278,17 @@ function AdminUsers() {
         ...selectedUser,
         status: isBanned ? "active" : "banned",
       });
-      alert(`User ${isBanned ? "Unbanned" : "Banned"} successfully!`);
+      useUIStore.getState().addToast(`User ${isBanned ? "Unbanned" : "Banned"} successfully!`);
     } catch (e) {
       console.error(e);
-      alert("Error updating status");
+      useUIStore.getState().addToast("Error updating status");
     }
   };
 
   const handleToggleAdmin = async () => {
     if (!selectedUser) return;
-    if (selectedUser.role === "super_admin") {
-      alert("Cannot modify super_admin role.");
+    if (selectedUser.role === "super_admin" || selectedUser.uid === "12Mz6ut6CSah4ZIUfUYbZzdsm5J2") {
+      useUIStore.getState().addToast("Cannot modify super_admin role.");
       return;
     }
     try {
@@ -2244,10 +2299,10 @@ function AdminUsers() {
         ...selectedUser,
         role: isAdmin ? "user" : "admin",
       });
-      alert(`User is now ${isAdmin ? "User" : "Admin"}!`);
+      useUIStore.getState().addToast(`User is now ${isAdmin ? "User" : "Admin"}!`);
     } catch (e) {
       console.error(e);
-      alert("Error updating role");
+      useUIStore.getState().addToast("Error updating role");
     }
   };
 
@@ -2324,11 +2379,11 @@ function AdminUsers() {
                 <span className="text-yellow-400">🪙</span>
                 <span>Manage Coins</span>
               </h4>
-              <div className="flex items-center space-x-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <select
                   value={coinAction}
                   onChange={(e) => setCoinAction(e.target.value as any)}
-                  className="bg-[#0B0E14] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none w-32"
+                  className="bg-[#0B0E14] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none w-full sm:w-32"
                 >
                   <option value="add">Add (+)</option>
                   <option value="remove">Remove (-)</option>
@@ -2344,7 +2399,7 @@ function AdminUsers() {
                 />
                 <button
                   onClick={handleUpdateCoins}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors"
+                  className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors"
                 >
                   Update
                 </button>
@@ -2483,9 +2538,9 @@ function AdminAchievements() {
   }, []);
 
   const handleSave = async () => {
-    if (!name.trim()) return alert("Name is required");
-    if (target <= 0) return alert("Target must be greater than 0");
-    if (coin <= 0) return alert("Coin reward must be greater than 0");
+    if (!name.trim()) return useUIStore.getState().addToast("Name is required");
+    if (target <= 0) return useUIStore.getState().addToast("Target must be greater than 0");
+    if (coin <= 0) return useUIStore.getState().addToast("Coin reward must be greater than 0");
 
     const achievementData = {
       photo: photo || `https://api.dicebear.com/7.x/initials/svg?seed=${name}`,
@@ -2500,13 +2555,13 @@ function AdminAchievements() {
     try {
       if (editingId) {
         await updateDoc(doc(db, "achievements", editingId), achievementData);
-        alert("Achievement updated!");
+        useUIStore.getState().addToast("Achievement updated!");
       } else {
         await addDoc(collection(db, "achievements"), {
           ...achievementData,
           createdAt: Date.now(),
         });
-        alert("Achievement added!");
+        useUIStore.getState().addToast("Achievement added!");
       }
 
       // Reset form
@@ -2518,7 +2573,7 @@ function AdminAchievements() {
       setEditingId(null);
       setAdminTab("added");
     } catch (err) {
-      alert("Error saving achievement");
+      useUIStore.getState().addToast("Error saving achievement");
       console.error(err);
     }
   };
@@ -2539,10 +2594,20 @@ function AdminAchievements() {
     });
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this achievement?")) {
-      await deleteDoc(doc(db, "achievements", id));
-    }
+  const handleDelete = (id: string) => {
+    const { showConfirm, addToast } = useUIStore.getState();
+    showConfirm({
+      title: "Delete Achievement",
+      message: "Are you sure you want to delete this achievement?",
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, "achievements", id));
+          addToast("Achievement deleted successfully", "success");
+        } catch(e) {
+          addToast("Failed to delete achievement", "error");
+        }
+      }
+    });
   };
 
   return (
@@ -2769,7 +2834,7 @@ function AdminAchievements() {
 
 function AdminPayments() {
   const [methods, setMethods] = useState<any>({ deposit: [], withdraw: [] });
-  const [activeType, setActiveType] = useState<"deposit" | "withdraw" | "requests" | "tasks" | "achievements">("deposit");
+  const [activeType, setActiveType] = useState<"deposit" | "withdraw" | "requests" | "tasks" | "achievements" | "submissions">("deposit");
   const [subTab, setSubTab] = useState<"old" | "add">("old");
   const [isEditing, setIsEditing] = useState<any>(null);
   const [currencyType, setCurrencyType] = useState<"Tk" | "Crypto">("Tk");
@@ -2820,15 +2885,15 @@ function AdminPayments() {
       setIsEditing(null);
       setEditData({ id: "", name: "", photo: "", address: "", isCrypto: false });
       setSubTab("old");
-      alert("Method saved!");
+      useUIStore.getState().addToast("Method saved!");
     } catch (e) {
       console.error(e);
-      alert("Failed to save");
+      useUIStore.getState().addToast("Failed to save");
     }
   };
   
   const handleDelete = async (id: string, type: string) => {
-    if(!confirm("Are you sure?")) return;
+    
     try {
       const newMethods = { ...methods };
       newMethods[type] = newMethods[type].filter((m: any) => m.id && m.id.toString() !== id.toString());
@@ -2836,7 +2901,7 @@ function AdminPayments() {
       setMethods(newMethods);
     } catch (e) {
       console.error(e);
-      alert("Failed to delete");
+      useUIStore.getState().addToast("Failed to delete");
     }
   };
   
@@ -2885,11 +2950,18 @@ function AdminPayments() {
         >
           Achievements
         </button>
+        <button
+          onClick={() => { setActiveType("submissions"); setIsEditing(null); }}
+          className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeType === "submissions" ? "bg-green-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+        >
+          Task Submissions
+        </button>
       </div>
 
       {activeType === "tasks" && <AdminTasks />}
       {activeType === "achievements" && <AdminAchievements />}
       {activeType === "requests" && <AdminRequests />}
+      {activeType === "submissions" && <AdminSubmissions />}
       
       {(activeType === "deposit" || activeType === "withdraw") && (
         <div className="space-y-4">
@@ -3015,17 +3087,17 @@ function AdminRequests() {
           });
         }
       }
-      alert("Status updated!");
+      useUIStore.getState().addToast("Status updated!");
     } catch (e) {
       console.error(e);
-      alert("Failed to update status");
+      useUIStore.getState().addToast("Failed to update status");
     }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex space-x-2 bg-[#151A23] p-1.5 rounded-xl border border-white/5 w-fit">
+        <div className="flex space-x-2 bg-[#151A23] p-1.5 rounded-xl border border-white/5 w-fit overflow-x-auto max-w-full no-scrollbar">
           <button
             onClick={() => setActiveType("deposit")}
             className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeType === "deposit" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
@@ -3038,76 +3110,402 @@ function AdminRequests() {
           >
             Withdrawals
           </button>
+          
         </div>
-        <div className="flex space-x-2 bg-[#151A23] p-1.5 rounded-xl border border-white/5 w-fit">
-          <button
-            onClick={() => setActiveStatus("pending")}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeStatus === "pending" ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" : "text-gray-400 hover:text-white border border-transparent"}`}
-          >
-            Pending
-          </button>
-          <button
-            onClick={() => setActiveStatus("completed")}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeStatus === "completed" ? "bg-green-500/20 text-green-400 border border-green-500/30" : "text-gray-400 hover:text-white border border-transparent"}`}
-          >
-            Approved
-          </button>
-          <button
-            onClick={() => setActiveStatus("rejected")}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeStatus === "rejected" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "text-gray-400 hover:text-white border border-transparent"}`}
-          >
-            Rejected
-          </button>
-        </div>
+        
+          <div className="flex space-x-2 bg-[#151A23] p-1.5 rounded-xl border border-white/5 w-fit">
+            <button
+              onClick={() => setActiveStatus("pending")}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeStatus === "pending" ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" : "text-gray-400 hover:text-white border border-transparent"}`}
+            >
+              Pending
+            </button>
+            <button
+              onClick={() => setActiveStatus("completed")}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeStatus === "completed" ? "bg-green-500/20 text-green-400 border border-green-500/30" : "text-gray-400 hover:text-white border border-transparent"}`}
+            >
+              Approved
+            </button>
+            <button
+              onClick={() => setActiveStatus("rejected")}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeStatus === "rejected" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "text-gray-400 hover:text-white border border-transparent"}`}
+            >
+              Rejected
+            </button>
+          </div>
       </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredReqs.map((req) => (
-          <div
-            key={req.id}
-            className="bg-[#151A23] rounded-2xl border border-white/5 p-5 shadow-lg relative overflow-hidden flex flex-col"
-          >
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <h3 className="font-bold text-white text-sm">
-                  {req.username || req.userId.substring(0, 8)}
-                </h3>
-                <p className="text-xs text-gray-400">
-                  {new Date(req.timestamp).toLocaleString()}
+          {filteredReqs.map((req) => (
+            <div
+              key={req.id}
+              className="bg-[#151A23] rounded-2xl border border-white/5 p-5 shadow-lg relative overflow-hidden flex flex-col"
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <h3 className="font-bold text-white text-sm">
+                    {req.username || req.userId.substring(0, 8)}
+                  </h3>
+                  <p className="text-xs text-gray-400">
+                    {new Date(req.timestamp).toLocaleString()}
+                  </p>
+                </div>
+                <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${req.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' : req.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                  {req.status || "pending"}
+                </span>
+              </div>
+              <div className="bg-[#0B0E14] rounded-xl p-3 mb-4 flex-1">
+                <p className="text-sm font-bold text-gray-200 mb-1">
+                  Amount: {req.amount} {req.currency || "Coins"}
                 </p>
+                <p className="text-xs text-blue-400 font-bold mb-2">
+                  Method: {req.methodName}
+                </p>
+                <div className="text-xs text-gray-400 break-all">
+                  <span className="text-gray-500">Address/Account:</span> {req.address}
+                </div>
               </div>
-              <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${req.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' : req.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                {req.status || "pending"}
-              </span>
+              {req.status === "pending" && (
+                <div className="flex space-x-2 mt-auto">
+                  <button
+                    onClick={() => handleStatusUpdate(req, "completed")}
+                    className="flex-1 bg-green-600/20 text-green-400 hover:bg-green-600 hover:text-white py-2 rounded-lg font-bold text-xs transition-colors"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleStatusUpdate(req, "rejected")}
+                    className="flex-1 bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white py-2 rounded-lg font-bold text-xs transition-colors"
+                  >
+                    Reject
+                  </button>
+                </div>
+              )}
             </div>
-            <div className="bg-[#0B0E14] rounded-xl p-3 mb-4 flex-1">
-              <p className="text-sm font-bold text-gray-200 mb-1">
-                Amount: {req.amount} {req.currency || "Coins"}
-              </p>
-              <p className="text-xs text-blue-400 font-bold mb-2">
-                Method: {req.methodName}
-              </p>
-              <div className="text-xs text-gray-400 break-all">
-                <span className="text-gray-500">Address/Account:</span> {req.address}
-              </div>
+          ))}
+        </div>
+    </div>
+  );
+}
+
+
+function CoinValuesEditor({ onClose, onSave, initialValues }: any) {
+  const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
+  const [methods, setMethods] = useState<any>({ deposit: [], withdraw: [] });
+  const [values, setValues] = useState<any>(initialValues || {});
+
+  useEffect(() => {
+    const fetchMethods = async () => {
+      const docRef = doc(db, "settings", "payment_methods");
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        setMethods(snap.data());
+      }
+    };
+    fetchMethods();
+  }, []);
+
+  return (
+    <div className="space-y-6 max-w-4xl">
+      <div className="flex items-center space-x-3 mb-6">
+        <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <X className="w-6 h-6" />
+        </button>
+        <h2 className="text-xl font-bold">Edit Coin Values</h2>
+      </div>
+      <p className="text-sm text-gray-400 mb-6">
+        Set the value of 1 VA coin for different methods. Methods are dynamically pulled from your Payment Methods.
+      </p>
+
+      <div className="flex space-x-2 bg-[#1C2331] p-1.5 rounded-xl mb-6">
+        <button
+          onClick={() => setActiveTab("deposit")}
+          className={`flex-1 py-2 rounded-lg font-bold transition-all ${activeTab === "deposit" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+        >
+          Deposit Methods
+        </button>
+        <button
+          onClick={() => setActiveTab("withdraw")}
+          className={`flex-1 py-2 rounded-lg font-bold transition-all ${activeTab === "withdraw" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+        >
+          Withdraw Methods
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {(methods[activeTab] || []).map((method: any) => (
+          <div
+            key={method.id}
+            className="bg-[#151A23] border border-white/5 rounded-xl p-4 flex items-center justify-between"
+          >
+            <span className="font-bold text-white flex items-center space-x-2">
+               {method.photo && <img src={method.photo} className="w-6 h-6 rounded-full object-cover" />}
+               <span>{method.name}</span>
+            </span>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-400">1 VA =</span>
+              <input
+                type="number"
+                step="any"
+                value={values[method.name] || ""}
+                onChange={(e) =>
+                  setValues({
+                    ...values,
+                    [method.name]: parseFloat(e.target.value) || 0,
+                  })
+                }
+                className="bg-[#0B0E14] border border-white/10 rounded-lg px-3 py-1.5 text-white w-24 focus:outline-none"
+              />
             </div>
-            {req.status === "pending" && (
-              <div className="flex space-x-2 mt-auto">
-                <button
-                  onClick={() => handleStatusUpdate(req, "completed")}
-                  className="flex-1 bg-green-600/20 text-green-400 hover:bg-green-600 hover:text-white py-2 rounded-lg font-bold text-xs transition-colors"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => handleStatusUpdate(req, "rejected")}
-                  className="flex-1 bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white py-2 rounded-lg font-bold text-xs transition-colors"
-                >
-                  Reject
-                </button>
-              </div>
-            )}
           </div>
         ))}
+        {(methods[activeTab] || []).length === 0 && (
+           <div className="col-span-full py-8 text-center text-gray-500 border-2 border-dashed border-white/10 rounded-xl">
+             No {activeTab} methods found. Add them in the Resources section first.
+           </div>
+        )}
+      </div>
+
+      <button onClick={() => onSave(values)} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg mt-6">
+        Save Changes
+      </button>
+    </div>
+  );
+}
+
+
+function AdsRewardsEditor({ onClose, onSave, initialAdsConfig, initialRewardsConfig }: any) {
+  const [activeTab, setActiveTab] = useState<"normal" | "vip" | "boxes" | "config">("normal");
+  
+  const [normalConfig, setNormalConfig] = useState({
+    dailyBonusReward: initialRewardsConfig?.dailyBonusReward || 100,
+    dailyAdsLimit: initialAdsConfig?.dailyAdsLimit || 50,
+    adWatchDuration: initialAdsConfig?.adWatchDuration || 15,
+    rewardPerAd: initialAdsConfig?.rewardPerAd || 50,
+    referrerReward: initialRewardsConfig?.referrerReward || 50,
+    referredReward: initialRewardsConfig?.referredReward || 50
+  });
+
+  const [vipConfig, setVipConfig] = useState({
+    dailyBonusReward: initialRewardsConfig?.vipDailyBonusReward || 150,
+    dailyAdsLimit: initialAdsConfig?.vipDailyAdsLimit || 100,
+    adWatchDuration: initialAdsConfig?.vipAdWatchDuration || 10,
+    rewardPerAd: initialAdsConfig?.vipRewardPerAd || 100,
+    referrerReward: initialRewardsConfig?.vipReferrerReward || 100,
+    referredReward: initialRewardsConfig?.vipReferredReward || 100
+  });
+
+  const [monetagConfig, setMonetagConfig] = useState({
+    adsEnabled: initialAdsConfig?.adsEnabled || false,
+    monetagZoneId: initialAdsConfig?.monetagZoneId || "",
+    monetagScriptUrl: initialAdsConfig?.monetagScriptUrl || "",
+    monetagSdk: initialAdsConfig?.monetagSdk || ""
+  });
+
+  const [adsBoxes, setAdsBoxes] = useState<any[]>([]);
+  const [boxTab, setBoxTab] = useState<"add" | "old">("old");
+  const [newBox, setNewBox] = useState({ id: "", title: "", photo: "", target: "normal", url: "", active: true });
+  
+  useEffect(() => {
+    const fetchBoxes = async () => {
+      const snap = await getDoc(doc(db, "settings", "ads_boxes"));
+      if (snap.exists()) {
+        setAdsBoxes(snap.data().boxes || []);
+      }
+    };
+    fetchBoxes();
+  }, []);
+
+  const handleSave = () => {
+    const finalAds = {
+      ...monetagConfig,
+      normalUser: {
+        dailyAdsLimit: normalConfig.dailyAdsLimit,
+        adWatchDuration: normalConfig.adWatchDuration,
+        rewardPerAd: normalConfig.rewardPerAd
+      },
+      vipUser: {
+        dailyAdsLimit: vipConfig.dailyAdsLimit,
+        adWatchDuration: vipConfig.adWatchDuration,
+        rewardPerAd: vipConfig.rewardPerAd
+      }
+    };
+    
+    // Fallback for backwards compatibility
+    finalAds.dailyAdsLimit = normalConfig.dailyAdsLimit;
+    finalAds.adWatchDuration = normalConfig.adWatchDuration;
+    finalAds.rewardPerAd = normalConfig.rewardPerAd;
+
+    const finalRewards = {
+      dailyBonusReward: normalConfig.dailyBonusReward,
+      referrerReward: normalConfig.referrerReward,
+      referredReward: normalConfig.referredReward,
+      vipDailyBonusReward: vipConfig.dailyBonusReward,
+      vipReferrerReward: vipConfig.referrerReward,
+      vipReferredReward: vipConfig.referredReward,
+    };
+    
+    onSave(finalAds, finalRewards, adsBoxes);
+  };
+
+  const handleAddBox = () => {
+    if (!newBox.title || !newBox.url) {
+      useUIStore.getState().addToast("Title and URL required", "error");
+      return;
+    }
+    const id = newBox.id || Date.now().toString();
+    const updatedBoxes = newBox.id 
+      ? adsBoxes.map(b => b.id === id ? newBox : b)
+      : [...adsBoxes, { ...newBox, id }];
+    setAdsBoxes(updatedBoxes);
+    setNewBox({ id: "", title: "", photo: "", target: "normal", url: "", active: true });
+    setBoxTab("old");
+  };
+
+  const ConfigForm = ({ state, setState }: any) => (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-xs font-bold text-gray-400 mb-1">Daily Ads Limit</label>
+        <input type="number" value={state.dailyAdsLimit} onChange={(e) => setState({...state, dailyAdsLimit: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
+      </div>
+      <div>
+        <label className="block text-xs font-bold text-gray-400 mb-1">Ad Watch Duration (seconds)</label>
+        <input type="number" value={state.adWatchDuration} onChange={(e) => setState({...state, adWatchDuration: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
+      </div>
+      <div>
+        <label className="block text-xs font-bold text-gray-400 mb-1">Reward Per Ad (Coins)</label>
+        <input type="number" value={state.rewardPerAd} onChange={(e) => setState({...state, rewardPerAd: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
+      </div>
+      <div className="pt-4 border-t border-white/10">
+        <label className="block text-xs font-bold text-gray-400 mb-1">Daily Bonus Claim (Coins)</label>
+        <input type="number" value={state.dailyBonusReward} onChange={(e) => setState({...state, dailyBonusReward: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
+      </div>
+      <div>
+        <label className="block text-xs font-bold text-gray-400 mb-1">Referrer Reward (Coins)</label>
+        <input type="number" value={state.referrerReward} onChange={(e) => setState({...state, referrerReward: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
+      </div>
+      <div>
+        <label className="block text-xs font-bold text-gray-400 mb-1">Referred User Reward (Coins)</label>
+        <input type="number" value={state.referredReward} onChange={(e) => setState({...state, referredReward: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+      <div className="flex items-center space-x-4 mb-6">
+        <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+        <h2 className="text-xl font-bold">Ad & Rewards Settings</h2>
+      </div>
+      
+      <div className="flex space-x-2 bg-[#1C2331] p-1.5 rounded-xl mb-6 overflow-x-auto no-scrollbar">
+        <button onClick={() => setActiveTab("normal")} className={`whitespace-nowrap px-4 py-2 rounded-lg font-bold transition-all ${activeTab === "normal" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}>Normal User</button>
+        <button onClick={() => setActiveTab("vip")} className={`whitespace-nowrap px-4 py-2 rounded-lg font-bold transition-all ${activeTab === "vip" ? "bg-purple-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}>Vip User</button>
+        <button onClick={() => setActiveTab("boxes")} className={`whitespace-nowrap px-4 py-2 rounded-lg font-bold transition-all ${activeTab === "boxes" ? "bg-emerald-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}>Ads Box</button>
+        <button onClick={() => setActiveTab("config")} className={`whitespace-nowrap px-4 py-2 rounded-lg font-bold transition-all ${activeTab === "config" ? "bg-red-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}>Conflicts (Monetag)</button>
+      </div>
+
+      <div className="bg-[#151A23] rounded-2xl p-6 border border-white/5 shadow-xl space-y-4">
+        {activeTab === "normal" && <ConfigForm state={normalConfig} setState={setNormalConfig} />}
+        {activeTab === "vip" && <ConfigForm state={vipConfig} setState={setVipConfig} />}
+        
+        {activeTab === "config" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between bg-[#0B0E14] border border-white/10 rounded-lg p-4 mb-4">
+              <div>
+                <span className="text-white block font-medium">Enable Ads System</span>
+                <span className="text-gray-500 text-xs">Turn ad viewing on or off globally.</span>
+              </div>
+              <div
+                className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${monetagConfig.adsEnabled ? "bg-blue-600" : "bg-gray-600"}`}
+                onClick={() => setMonetagConfig({ ...monetagConfig, adsEnabled: !monetagConfig.adsEnabled })}
+              >
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${monetagConfig.adsEnabled ? "left-7" : "left-1"}`} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Monetag Direct Link URL</label>
+              <input type="text" value={monetagConfig.monetagZoneId} onChange={(e) => setMonetagConfig({...monetagConfig, monetagZoneId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. https://directlink..." />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Monetag Script URL (In-App Ad)</label>
+              <input type="text" value={monetagConfig.monetagScriptUrl} onChange={(e) => setMonetagConfig({...monetagConfig, monetagScriptUrl: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. //thubanoa.com/1?z=12345" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Monetag SDK Function Name</label>
+              <input type="text" value={monetagConfig.monetagSdk} onChange={(e) => setMonetagConfig({...monetagConfig, monetagSdk: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. show_9955574" />
+            </div>
+          </div>
+        )}
+
+        {activeTab === "boxes" && (
+          <div className="space-y-4">
+             <div className="flex space-x-2 bg-[#0B0E14] p-1.5 rounded-xl mb-4 w-fit border border-white/5">
+                <button onClick={() => { setBoxTab("add"); setNewBox({ id: "", title: "", photo: "", target: "normal", url: "", active: true }); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${boxTab === "add" ? "bg-emerald-600 text-white" : "text-gray-400 hover:text-white"}`}>Add Box</button>
+                <button onClick={() => setBoxTab("old")} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${boxTab === "old" ? "bg-emerald-600 text-white" : "text-gray-400 hover:text-white"}`}>Old Box</button>
+             </div>
+
+             {boxTab === "add" && (
+               <div className="space-y-4 bg-[#0B0E14] p-4 rounded-xl border border-white/5">
+                 <div>
+                    <label className="block text-xs font-bold text-gray-400 mb-1">Ad Title</label>
+                    <input type="text" value={newBox.title} onChange={e => setNewBox({...newBox, title: e.target.value})} className="w-full bg-[#151A23] border border-white/10 rounded-xl p-3 text-sm text-white" />
+                 </div>
+                 <div>
+                    <label className="block text-xs font-bold text-gray-400 mb-1">Photo URL</label>
+                    <input type="text" value={newBox.photo} onChange={e => setNewBox({...newBox, photo: e.target.value})} className="w-full bg-[#151A23] border border-white/10 rounded-xl p-3 text-sm text-white" />
+                 </div>
+                 <div>
+                    <label className="block text-xs font-bold text-gray-400 mb-1">Action URL</label>
+                    <input type="text" value={newBox.url} onChange={e => setNewBox({...newBox, url: e.target.value})} className="w-full bg-[#151A23] border border-white/10 rounded-xl p-3 text-sm text-white" />
+                 </div>
+                 <div>
+                    <label className="block text-xs font-bold text-gray-400 mb-1">Target Audience</label>
+                    <select value={newBox.target} onChange={e => setNewBox({...newBox, target: e.target.value})} className="w-full bg-[#151A23] border border-white/10 rounded-xl p-3 text-sm text-white">
+                      <option value="normal">Normal Users</option>
+                      <option value="vip">VIP Users</option>
+                      <option value="all">All Users</option>
+                    </select>
+                 </div>
+                 <button onClick={handleAddBox} className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold">Save Box</button>
+               </div>
+             )}
+
+             {boxTab === "old" && (
+                <div className="space-y-3">
+                  {adsBoxes.map(b => (
+                    <div key={b.id} className="bg-[#0B0E14] border border-white/5 p-4 rounded-xl flex items-center justify-between">
+                       <div className="flex items-center space-x-3">
+                         {b.photo && <img src={b.photo} className="w-10 h-10 rounded-lg object-cover" />}
+                         <div>
+                           <h4 className="font-bold text-white text-sm">{b.title}</h4>
+                           <p className="text-xs text-gray-400">{b.target.toUpperCase()} • {b.active ? "Active" : "Inactive"}</p>
+                         </div>
+                       </div>
+                       <div className="flex items-center space-x-2">
+                         <button onClick={() => setAdsBoxes(adsBoxes.map(x => x.id === b.id ? {...x, active: !x.active} : x))} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${b.active ? "bg-red-500/20 text-red-400" : "bg-green-500/20 text-green-400"}`}>{b.active ? "Disable" : "Enable"}</button>
+                         <button onClick={() => { setNewBox(b); setBoxTab("add"); }} className="px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-lg text-xs font-bold">Edit</button>
+                         <button onClick={() => {
+                            useUIStore.getState().showConfirm({
+                              title: "Delete Ad Box",
+                              message: "Are you sure you want to delete this ad box?",
+                              onConfirm: () => setAdsBoxes(adsBoxes.filter(x => x.id !== b.id))
+                            });
+                         }} className="px-3 py-1.5 bg-gray-500/20 text-gray-400 rounded-lg text-xs font-bold"><Trash2 className="w-4 h-4"/></button>
+                       </div>
+                    </div>
+                  ))}
+                  {adsBoxes.length === 0 && <p className="text-center text-gray-500 text-sm py-4">No ad boxes created.</p>}
+                </div>
+             )}
+          </div>
+        )}
+
+        {activeTab !== "boxes" && (
+          <button onClick={handleSave} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg mt-6">
+            Save Settings
+          </button>
+        )}
       </div>
     </div>
   );

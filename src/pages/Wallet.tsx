@@ -1,3 +1,4 @@
+import { useUIStore } from '../store/useUIStore';
 import { useState, useEffect } from "react";
 import { Send, Wallet as WalletIcon, ArrowDownToLine, ChevronLeft, Copy, CheckCircle2 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
@@ -89,12 +90,12 @@ export default function Wallet() {
              setReceiverName(uidSnap.data().username);
              setTargetUid(receiverId);
           } else {
-             alert('User not found!');
+             useUIStore.getState().addToast('User not found!');
           }
        }
      } catch (e) {
        console.warn(e);
-       alert('Error checking user');
+       useUIStore.getState().addToast('Error checking user');
      }
      setIsChecking(false);
   };

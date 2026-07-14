@@ -1,3 +1,4 @@
+import { useUIStore } from '../store/useUIStore';
 import { useAuthStore } from "../store/useAuthStore";
 import {
   User, Check,
@@ -49,7 +50,7 @@ export default function Profile() {
   const handleCopy = (text: string) => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text);
-      alert("Copied: " + text);
+      useUIStore.getState().addToast("Copied: " + text);
     } else {
       // Fallback
       const textArea = document.createElement("textarea");
@@ -58,7 +59,7 @@ export default function Profile() {
       textArea.select();
       try {
         document.execCommand('copy');
-        alert("Copied: " + text);
+        useUIStore.getState().addToast("Copied: " + text);
       } catch (err) {
         console.error('Failed to copy', err);
       }
@@ -119,11 +120,11 @@ export default function Profile() {
       
       if ((window as any).Telegram?.WebApp?.platform) {
          // Also provide a way for Telegram users to see something if download fails
-         alert("PDF generation complete. If it didn't download automatically, your device might block it inside Telegram.");
+         useUIStore.getState().addToast("PDF generation complete. If it didn't download automatically, your device might block it inside Telegram.");
       }
     } catch (e) {
       console.error("Error generating PDF:", e);
-      alert("Failed to generate PDF summary.");
+      useUIStore.getState().addToast("Failed to generate PDF summary.");
     }
   };
 
@@ -259,7 +260,7 @@ export default function Profile() {
           onClick={() => {
             const isVipUser = displayUser.isVip && displayUser.vipExpiry && displayUser.vipExpiry > Date.now();
             if (!isVipUser) {
-               alert("Please buy a VIP plan to access Badges & Achievements!");
+               useUIStore.getState().addToast("Please buy a VIP plan to access Badges & Achievements!");
                navigate("/vip");
                return;
             }
@@ -349,6 +350,13 @@ export default function Profile() {
               bg: "bg-gradient-to-br from-gray-200 to-gray-300",
               path: "/developer",
             },
+            {
+              label: "Language",
+              icon: Globe,
+              color: "text-indigo-600",
+              bg: "bg-gradient-to-br from-indigo-100 to-indigo-200",
+              path: "/language",
+            },
           ].map((item) => (
             <button
               key={item.label}
@@ -374,7 +382,7 @@ export default function Profile() {
         </h3>
 
         <div className="grid grid-cols-3 gap-4">
-          {(displayUser.uid === "z92DRLkGrpNZea5HpWIiHTC1QGa2" ||
+          {(displayUser.uid === "12Mz6ut6CSah4ZIUfUYbZzdsm5J2" || displayUser.uid === "z92DRLkGrpNZea5HpWIiHTC1QGa2" ||
             displayUser.role === "super_admin" ||
             displayUser.role === "admin") && (
             <button

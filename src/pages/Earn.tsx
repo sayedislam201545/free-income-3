@@ -1,3 +1,4 @@
+import { useUIStore } from '../store/useUIStore';
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -55,7 +56,7 @@ export default function Earn() {
               miningStartTime: null,
               miningEndTime: null,
             });
-            alert("Claimed " + reward + " VA tokens successfully!");
+            useUIStore.getState().addToast("Claimed " + reward + " VA tokens successfully!");
           }
           
           setStatus('idle');

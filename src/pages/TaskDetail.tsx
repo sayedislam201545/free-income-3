@@ -1,3 +1,4 @@
+import { useUIStore } from '../store/useUIStore';
 import { AnimatePresence, motion } from "motion/react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -110,23 +111,48 @@ export default function TaskDetail() {
 
   const handleAppSubmit = async () => {
     if (!note || !profileLink) {
-      alert("Please fill all fields.");
+      useUIStore.getState().addToast("Please fill all fields.");
       return;
     }
     if (!user || !user.uid) {
-      alert("Please login first.");
+      useUIStore.getState().addToast("Please login first.");
       return;
     }
     setIsUploading(true);
     try {
+      // Get imgbb API token
+      const botSettingSnap = await getDoc(doc(db, "settings", "bot_setting"));
+      const imgbbToken = botSettingSnap.exists() ? botSettingSnap.data().imgbbApiToken : null;
+      
+      if (!imgbbToken) {
+        useUIStore.getState().addToast("Imgbb API Token is not configured by admin.");
+        setIsUploading(false);
+        return;
+      }
+
       const imageUrls: string[] = [];
       for (let i = 0; i < screenshots.length; i++) {
         const file = screenshots[i];
         if (file) {
-          const storageRef = ref(storage, `submissions/${user.uid}/${Date.now()}_${i}`);
-          await uploadBytes(storageRef, file);
-          const url = await getDownloadURL(storageRef);
-          imageUrls.push(url);
+          const formData = new FormData();
+          formData.append("image", file);
+          
+          try {
+            const res = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbToken}`, {
+              method: "POST",
+              body: formData,
+            });
+            const data = await res.json();
+            if (data.success) {
+              imageUrls.push(data.data.url);
+            } else {
+              throw new Error("Imgbb upload failed");
+            }
+          } catch (e) {
+             useUIStore.getState().addToast("Failed to upload image to Imgbb.");
+             setIsUploading(false);
+             return;
+          }
         }
       }
 
@@ -142,14 +168,14 @@ export default function TaskDetail() {
         status: "pending",
         createdAt: new Date().toISOString()
       });
-      alert("Submission sent successfully! It is now pending admin approval.");
+      useUIStore.getState().addToast("Submission sent successfully! It is now pending admin approval.");
       navigate(-1);
     } catch (err: any) {
       console.error(err);
       if (err.code === "storage/unauthorized") {
-         alert("Storage permission denied. Admin needs to allow uploads in Firebase Rules.");
+         useUIStore.getState().addToast("Storage permission denied. Admin needs to allow uploads in Firebase Rules.");
       } else {
-         alert("Failed to submit task. Please try again.");
+         useUIStore.getState().addToast("Failed to submit task. Please try again.");
       }
     } finally {
       setIsUploading(false);

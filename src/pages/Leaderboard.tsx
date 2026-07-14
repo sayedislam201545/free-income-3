@@ -33,7 +33,7 @@ export default function Leaderboard() {
              usersArray.sort((a, b) => Number(b[orderByField] || 0) - Number(a[orderByField] || 0));
              
              // Take top 50
-             const topUsers = usersArray.slice(0, 50);
+             const topUsers = usersArray.slice(0, 10);
 
              const formattedUsers = topUsers.map((u, index) => ({
                  rank: index + 1,

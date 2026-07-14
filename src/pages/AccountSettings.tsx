@@ -1,3 +1,4 @@
+import { useUIStore } from '../store/useUIStore';
 import { User, Hash, Smartphone, Mail, Lock, Calendar, Eye, EyeOff, Sparkles, Bell, Key, Save } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useNavigate } from "react-router-dom";
@@ -38,10 +39,10 @@ export default function AccountSettings() {
         accountPassword: accountPass
       });
       useAuthStore.getState().updateUser({ walletPassword: walletPass, accountPassword: accountPass });
-      alert("Passwords saved!");
+      useUIStore.getState().addToast("Passwords saved!");
     } catch(e) {
       console.error(e);
-      alert("Failed to save passwords");
+      useUIStore.getState().addToast("Failed to save passwords");
     } finally {
       setSavingPass(false);
     }

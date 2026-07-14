@@ -1,3 +1,4 @@
+import { useUIStore } from '../store/useUIStore';
 import EmptyState from "../components/EmptyState";
 import TaskProgress from "../components/TaskProgress";
 import {
@@ -201,7 +202,7 @@ export default function Task() {
 
   const handleGo = useCallback((t: any) => {
     if (activeCategory === "vip" && (!user?.currentLevel || user?.currentLevel === 0)) {
-      alert("This task is only for VIP users.");
+      useUIStore.getState().addToast("This task is only for VIP users.");
       return;
     }
     navigate(`/task/${t.fbId || t.id}`);
@@ -209,9 +210,14 @@ export default function Task() {
 
   return (
     <div className="flex flex-col min-h-screen max-w-md mx-auto w-full relative -mx-4 -my-6 px-4 py-8 bg-gray-50 text-gray-900 overflow-x-hidden">
-      <h2 className="text-xl font-bold mb-4 px-2 flex items-center text-gray-800">
-        <ListTodo className="mr-2 text-blue-600" /> Available Tasks
-      </h2>
+            <header className="flex items-center justify-between mb-8 text-[#2C334A] pt-2 px-2">
+        <div>
+           <h1 className="text-2xl font-black tracking-tight drop-shadow-sm flex items-center">
+             <ListTodo className="mr-2 text-blue-600" /> Tasks
+           </h1>
+           <p className="text-sm font-medium text-gray-500 mt-1">Complete tasks to earn huge rewards</p>
+        </div>
+      </header>
 
       {/* Progress Bar Component */}
       <div className="px-2">

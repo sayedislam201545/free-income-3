@@ -1,3 +1,4 @@
+import { useUIStore } from '../store/useUIStore';
 import { useState, useEffect } from "react";
 import {
   collection,
@@ -57,11 +58,11 @@ export default function Achievements() {
           });
 
           playSuccessSound();
-          alert(`Successfully claimed ${achievement.coin} VA!`);
+          useUIStore.getState().addToast(`Successfully claimed ${achievement.coin} VA!`);
         }
       } catch (err) {
         console.error(err);
-        alert("Failed to claim reward");
+        useUIStore.getState().addToast("Failed to claim reward");
       }
       setClaimingId(null);
     }, 2000); // Simulate 2s ad delay

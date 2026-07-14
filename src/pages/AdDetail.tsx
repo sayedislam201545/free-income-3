@@ -1,3 +1,4 @@
+import { useUIStore } from '../store/useUIStore';
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { auth, db } from "../lib/firebase";
@@ -7,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { playPremiumClick } from "../utils/audio";
 import { Play, CheckCircle2, Video } from "lucide-react";
 import { useAdTracker } from "../hooks/useAdTracker";
+import { useAuthStore } from "../store/useAuthStore";
 
 export default function AdDetail() {
   const navigate = useNavigate();
@@ -28,12 +30,33 @@ export default function AdDetail() {
     rewardPerAd: 50,
   });
 
+  const user = useAuthStore((state) => state.user);
+  const isVipUser = user?.isVip && user?.vipExpiry && user?.vipExpiry > Date.now();
+
   useEffect(() => {
     const fetchConfig = async () => {
       try {
         const snap = await getDoc(doc(db, "settings", "ads_config"));
         if (snap.exists()) {
-          setAdsConfig({ ...adsConfig, ...snap.data() });
+          const data = snap.data();
+          const userRef = auth.currentUser ? doc(db, "users", auth.currentUser.uid) : null;
+          let userSnap = null;
+          if (userRef) userSnap = await getDoc(userRef);
+          
+          let isVip = false;
+          if (userSnap && userSnap.exists()) {
+             const uData = userSnap.data();
+             if (uData.isVip && uData.vipExpiry && uData.vipExpiry > Date.now()) {
+                isVip = true;
+             }
+          }
+          
+          const specificConfig = isVip ? data.vipUser : data.normalUser;
+          if (specificConfig) {
+             setAdsConfig({ ...adsConfig, ...data, ...specificConfig });
+          } else {
+             setAdsConfig({ ...adsConfig, ...data });
+          }
         }
       } catch (e) {}
     };
@@ -80,7 +103,7 @@ export default function AdDetail() {
   const handleWatchAd = () => {
     playPremiumClick();
     if (dailyWatched >= (adsConfig.dailyAdsLimit || 50)) {
-      alert("Daily limit reached for this campaign!");
+      useUIStore.getState().addToast("Daily limit reached for this campaign!");
       return;
     }
     
