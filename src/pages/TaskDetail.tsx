@@ -122,7 +122,7 @@ export default function TaskDetail() {
     try {
       // Get imgbb API token
       const botSettingSnap = await getDoc(doc(db, "settings", "bot_setting"));
-      const imgbbToken = botSettingSnap.exists() ? botSettingSnap.data().imgbbApiToken : null;
+      const imgbbToken = botSettingSnap.exists() ? botSettingSnap.data().imgbbApiToken || botSettingSnap.data().imgbbApi : null;
       
       if (!imgbbToken) {
         useUIStore.getState().addToast("Imgbb API Token is not configured by admin.");

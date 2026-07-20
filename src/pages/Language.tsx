@@ -36,7 +36,7 @@ export default function Language() {
     // Set cookies for persistence across reloads
     document.cookie = `googtrans=/en/${langCode}; path=/;`;
     if (window.location.hostname !== 'localhost') {
-        document.cookie = `googtrans=/en/${langCode}; path=/; domain=.${window.location.hostname};`;
+        document.cookie = `googtrans=/en/${langCode}; path=/; domain=${window.location.hostname};`;
     }
 
     // Attempt to change language via the embedded script combo box
@@ -44,6 +44,7 @@ export default function Language() {
     if (select) {
       select.value = langCode;
       select.dispatchEvent(new Event('change', { bubbles: true }));
+      setTimeout(() => window.location.reload(), 300);
     }
   };
 
@@ -52,7 +53,7 @@ export default function Language() {
       {/* Header */}
       <header className="flex items-center mb-8 text-[#2C334A] pt-2">
         <PremiumBackButton fallbackPath="/profile" className="scale-90 origin-left mr-4" />
-        <h1 className="text-xl font-bold">Language Settings</h1>
+        <h1 className="text-xl font-bold">Leagues</h1>
       </header>
 
       <div className="flex-1 overflow-y-auto pb-8 hide-scrollbar">

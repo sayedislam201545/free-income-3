@@ -1,20 +1,14 @@
 const fs = require('fs');
-let content = fs.readFileSync('src/pages/Admin.tsx', 'utf8');
+let code = fs.readFileSync('src/pages/Admin_clean.tsx', 'utf8');
 
-const regex = /if \(editing === "coin_values"\) \{[\s\S]*?(?=\s*if \(editing === "bot_setting"\))/;
-const newCoinValues = `if (editing === "coin_values") {
-      return (
-        <CoinValuesEditor
-          onClose={() => setEditing(null)}
-          onSave={async (values) => {
-            await setDoc(doc(db, "settings", "coin_values"), values, { merge: true });
-            useUIStore.getState().addToast("Saved!");
-            setEditing(null);
-          }}
-          initialValues={coinValues}
-        />
-      );
-    }`;
+const target = `<button onClick={() => onSave(values)} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg mt-6">`;
+const replacement = `<button onClick={() => {
+        const finalValues = {};
+        [...(methods.deposit || []), ...(methods.withdraw || [])].forEach((m) => {
+          finalValues[m.name] = values[m.name] || 0;
+        });
+        onSave(finalValues);
+      }} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg mt-6">`;
 
-content = content.replace(regex, newCoinValues + '\n');
-fs.writeFileSync('src/pages/Admin.tsx', content);
+code = code.replace(target, replacement);
+fs.writeFileSync('src/pages/Admin_clean.tsx', code);

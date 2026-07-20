@@ -1,146 +1,88 @@
-import { useState } from "react";
-import { Routes, Route, Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Routes, Route, Link, useNavigate, useLocation } from "react-router-dom";
+import { LayoutDashboard, Users, Upload, Settings, X, Shield, ListTodo, CheckCircle, Trophy, Bell, Coins, FileText, User, Trash2, Edit, Clock, Copy, Plus, Edit3 } from "lucide-react";
+import { db } from "../lib/firebase";
 import { jsPDF } from "jspdf";
 import {
-  Settings,
-  Users,
-  LayoutDashboard,
-  Bell,
-  FileText,
-  Gift,
-  Download,
-  Upload,
-  Shield,
-  Menu,
-  X,
-  Video,
-  ListTodo,
-  Plus,
-  ExternalLink,
-  CheckCircle,
-  Edit,
-  Trash2,
-  Copy,
-  Trophy,
-} from "lucide-react";
-import { db } from "../lib/firebase";
-import {
   collection,
-  doc,
   onSnapshot,
+  query,
+  where,
+  getDocs,
+  doc,
   setDoc,
-  addDoc,
-  deleteDoc,
   getDoc,
   updateDoc,
-  getDocs,
+  deleteDoc,
+  addDoc,
+  limit,
+  increment,
 } from "firebase/firestore";
-import { useEffect } from "react";
-import PremiumBackButton from "../components/PremiumBackButton";
 import { useUIStore } from "../store/useUIStore";
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
   
-
   return (
     <div className="flex flex-col h-screen max-w-md mx-auto w-full relative bg-[#0B0E14] text-white">
-      {/* Mobile overlay */}
       {sidebarOpen && (
-        <div
-          className="absolute inset-0 bg-black/50 z-40 "
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="absolute inset-0 bg-black/50 z-40 " onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
-      <aside
-        className={`absolute inset-y-0 left-0 z-50 w-64 border-r border-white/10 bg-[#151A23] flex flex-col transform transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
-      >
+      <aside className={`absolute inset-y-0 left-0 z-50 w-64 border-r border-white/10 bg-[#151A23] flex flex-col transform transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center space-x-2 text-crypto-primary">
             <Shield className="w-6 h-6" />
             <span className="font-bold text-lg tracking-tight">Admin CMS</span>
           </div>
-          <button
-            className=" text-gray-400 hover:text-white"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <X className="w-6 h-6" />
+          <button onClick={() => setSidebarOpen(false)} className="text-gray-400 hover:text-white">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {[
             { name: "Dashboard", icon: LayoutDashboard, path: "/admin" },
-            
-            
-            
-            { name: "Users & VIP", icon: Users, path: "/admin/users" },
-            { name: "Resources", icon: Upload, path: "/admin/payments" },
+            { name: "Users page", icon: Users, path: "/admin/users" },
+            { name: "Payments", icon: Upload, path: "/admin/payments" },
             { name: "Settings", icon: Settings, path: "/admin/settings" },
-            
             { name: "Exit Admin", icon: X, path: "/", textClass: "text-red-400" },
           ].map((item) => (
             <Link
               key={item.name}
               to={item.path}
-              onClick={(e) => {
-                if ((item as any).onClick) {
-                   e.preventDefault();
-                   (item as any).onClick();
-                }
-                setSidebarOpen(false);
-              }}
-              className="flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-white/5 text-gray-300 hover:text-white transition-colors"
+              onClick={() => setSidebarOpen(false)}
+              className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-white/5 ${item.textClass || "text-gray-300 hover:text-white"}`}
             >
-              <item.icon className={`w-5 h-5 ${item.textClass || ""}`} />
-              <span className={`text-sm font-medium ${item.textClass || ""}`}>{item.name}</span>
+              <item.icon className="w-5 h-5 opacity-70" />
+              <span className="font-bold text-sm">{item.name}</span>
             </Link>
           ))}
         </nav>
       </aside>
 
-      {/* Main Area */}
-      <main className="flex-1 flex flex-col overflow-hidden w-full">
-        <header className="h-16 border-b border-white/10 bg-[#151A23] flex items-center justify-between px-4 lg:px-6">
-          <div className="flex items-center space-x-3">
-            <button
-              className="text-gray-400 hover:text-white"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-            <h2 className="font-semibold text-lg truncate ml-2">Admin Panel</h2>
-          </div>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <header className="h-16 border-b border-white/10 bg-[#151A23] flex items-center justify-between px-4 sticky top-0 z-30">
           <div className="flex items-center space-x-4">
-            <button className="text-gray-400 hover:text-white relative p-1">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-[#151A23]"></span>
+            <button onClick={() => setSidebarOpen(true)} className="p-2 -ml-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+              <div className="space-y-1.5">
+                <span className="block w-5 h-0.5 bg-current rounded-full"></span>
+                <span className="block w-4 h-0.5 bg-current rounded-full"></span>
+                <span className="block w-5 h-0.5 bg-current rounded-full"></span>
+              </div>
             </button>
+            <h1 className="font-bold text-lg">Admin Panel</h1>
           </div>
         </header>
-        <div className="flex-1 overflow-auto p-6 bg-[#0B0E14]">
+        <div className="flex-1 overflow-auto p-6 bg-[#0B0E14] hide-scrollbar">
           <Routes>
             <Route index element={<AdminDashboard />} />
-            <Route path="settings" element={<AdminSettings />} />
-            <Route path="tasks" element={<AdminTasks />} />
-            <Route path="submissions" element={<AdminSubmissions />} />
             <Route path="users" element={<AdminUsers />} />
-            <Route path="achievements" element={<AdminAchievements />} />
             <Route path="payments" element={<AdminPayments />} />
-            <Route
-              path="*"
-              element={
-                <div className="text-gray-400">
-                  Section pending implementation...
-                </div>
-              }
-            />
+            <Route path="settings" element={<AdminSettings />} />
           </Routes>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
@@ -149,224 +91,65 @@ function AdminDashboard() {
   const [stats, setStats] = useState({
     totalUsers: 0,
     vipUsers: 0,
-    totalDeposits: 0,
-    totalWithdrawals: 0,
-    pendingTickets: 0,
-    activeTasks: 0,
     totalCoins: 0,
     adsWatched: 0,
     pendingSubmissions: 0,
   });
 
-  const [toggles, setToggles] = useState({
-    maintenance: false,
-    registration: true,
-    withdrawals: true,
-    dailyCheckin: true,
-  });
-
   useEffect(() => {
     const usersRef = collection(db, "users");
     const unsubUsers = onSnapshot(usersRef, (snap) => {
-      if (!snap.empty) {
-        let vipCount = 0;
-        let coins = 0;
-        let ads = 0;
-        snap.docs.forEach((doc) => {
-          const d = doc.data();
-          if (d.role === "vip") vipCount++;
-          coins += d.vaBalance || 0;
-          ads += d.dailyAdsWatched || 0;
-        });
-        setStats((prev) => ({
-          ...prev,
-          totalUsers: snap.docs.length,
-          vipUsers: vipCount,
-          totalCoins: coins,
-          adsWatched: ads,
-        }));
-      } else {
-        setStats((prev) => ({
-          ...prev,
-          totalUsers: 0,
-          vipUsers: 0,
-          totalCoins: 0,
-          adsWatched: 0,
-        }));
-      }
-    });
-
-    const txRef = collection(db, "transactions");
-    const unsubTx = onSnapshot(txRef, (snap) => {
-      if (!snap.empty) {
-        let deposits = 0;
-        let withdrawals = 0;
-        let pendingReqs = 0;
-        snap.docs.forEach((docSnap) => {
-          const val = docSnap.data();
-          if (val.type === "deposit" && val.status === "completed")
-            deposits += val.amount || 0;
-          if (val.type === "withdraw" && val.status === "completed")
-            withdrawals += val.amount || 0;
-          if (
-            (val.type === "deposit" || val.type === "withdraw") &&
-            val.status === "pending"
-          )
-            pendingReqs++;
-        });
-        setStats((prev) => ({
-          ...prev,
-          totalDeposits: deposits,
-          totalWithdrawals: withdrawals,
-          pendingTickets: pendingReqs,
-        }));
-      } else {
-        setStats((prev) => ({
-          ...prev,
-          totalDeposits: 0,
-          totalWithdrawals: 0,
-          pendingTickets: 0,
-        }));
-      }
-    });
-
-    const tasksRef = collection(db, "tasks");
-    const unsubTasks = onSnapshot(tasksRef, (snap) => {
+      let vipCount = 0;
+      let coins = 0;
+      let ads = 0;
+      snap.docs.forEach((doc) => {
+        const d = doc.data();
+        if (d.role === "vip" || d.isVip === true) vipCount++;
+        coins += d.vaBalance || 0;
+        ads += d.dailyAdsWatched || 0;
+      });
       setStats((prev) => ({
         ...prev,
-        activeTasks: snap.docs.filter((d) => d.data().active).length,
+        totalUsers: snap.docs.length,
+        vipUsers: vipCount,
+        totalCoins: coins,
+        adsWatched: ads,
       }));
     });
 
-    const subsRef = collection(db, "task_submissions");
-    const unsubSubs = onSnapshot(subsRef, (snap) => {
-      setStats((prev) => ({
-        ...prev,
-        pendingSubmissions: snap.docs.filter(
-          (d) => d.data().status === "pending",
-        ).length,
-      }));
-    });
-
-    const togglesRef = doc(db, "settings", "toggles");
-    const unsubToggles = onSnapshot(togglesRef, (snap) => {
-      if (snap.exists()) {
-        setToggles((prev) => ({ ...prev, ...snap.data() }));
-      }
+    const subRef = collection(db, "task_submissions");
+    const unsubSub = onSnapshot(query(subRef, where("status", "==", "pending")), (snap) => {
+      setStats((prev) => ({ ...prev, pendingSubmissions: snap.docs.length }));
     });
 
     return () => {
       unsubUsers();
-      unsubTx();
-      unsubToggles();
-      unsubTasks();
-      unsubSubs();
+      unsubSub();
     };
   }, []);
 
-  const handleToggle = async (key: string, value: boolean) => {
-    await updateDoc(doc(db, "settings", "toggles"), { [key]: value });
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+      <h2 className="text-2xl font-bold mb-6">Dashboard Overview</h2>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          {
-            label: "Total Users",
-            value: stats.totalUsers.toLocaleString(),
-            color: "text-blue-400",
-          },
-          {
-            label: "VIP Users",
-            value: stats.vipUsers.toLocaleString(),
-            color: "text-purple-400",
-          },
-          {
-            label: "Total Balance (VA)",
-            value: stats.totalCoins.toLocaleString(),
-            color: "text-yellow-400",
-          },
-          {
-            label: "Total Deposits",
-            value: `${stats.totalDeposits.toLocaleString()} VA`,
-            color: "text-green-400",
-          },
-          {
-            label: "Total Withdrawals",
-            value: `${stats.totalWithdrawals.toLocaleString()} VA`,
-            color: "text-red-400",
-          },
-          {
-            label: "Pending Requests",
-            value: stats.pendingTickets.toString(),
-            color: "text-orange-400",
-          },
-          {
-            label: "Active Tasks",
-            value: stats.activeTasks.toString(),
-            color: "text-cyan-400",
-          },
-          {
-            label: "Pending Submissions",
-            value: stats.pendingSubmissions.toString(),
-            color: "text-pink-400",
-          },
-          {
-            label: "Ads Watched Today",
-            value: stats.adsWatched.toString(),
-            color: "text-emerald-400",
-          },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-[#151A23] p-6 rounded-2xl border border-white/5 shadow-lg relative overflow-hidden group hover:border-white/10 transition-colors"
-          >
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -translate-y-12 translate-x-12 blur-2xl group-hover:bg-white/10 transition-colors" />
-            <p className="text-gray-400 text-sm mb-2 font-medium">
-              {stat.label}
-            </p>
-            <h3 className={`text-3xl font-black ${stat.color} tracking-tight`}>
-              {stat.value}
-            </h3>
+          { label: "Total Users", value: stats.totalUsers, icon: "👥" },
+          { label: "VIP Users", value: stats.vipUsers, icon: "👑" },
+          { label: "Total Coins", value: stats.totalCoins.toLocaleString(), icon: "💰" },
+          { label: "Ads Watched", value: stats.adsWatched.toLocaleString(), icon: "📺" },
+          { label: "Pending Tasks", value: stats.pendingSubmissions, icon: "⏳" },
+        ].map((stat, i) => (
+          <div key={i} className="bg-[#151A23] p-6 rounded-2xl border border-white/5 flex flex-col items-center text-center">
+            <span className="text-3xl mb-3">{stat.icon}</span>
+            <span className="text-gray-400 text-sm font-bold mb-1">{stat.label}</span>
+            <h3 className="text-2xl font-black text-white">{stat.value}</h3>
           </div>
         ))}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-[#151A23] p-6 rounded-xl border border-white/5">
-          <h3 className="font-semibold mb-4">Feature Toggles</h3>
-          <div className="space-y-4">
-            {[
-              { label: "Maintenance Mode", key: "maintenance" },
-              { label: "Registration", key: "registration" },
-              { label: "Withdrawals", key: "withdrawals" },
-              { label: "Daily Check-in", key: "dailyCheckin" },
-            ].map((feature) => {
-              const isActive = toggles[feature.key as keyof typeof toggles];
-              return (
-                <div
-                  key={feature.key}
-                  className="flex items-center justify-between"
-                >
-                  <span className="text-sm text-gray-300">{feature.label}</span>
-                  <div
-                    className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${isActive ? "bg-crypto-primary" : "bg-gray-600"}`}
-                    onClick={() => handleToggle(feature.key, !isActive)}
-                  >
-                    <div
-                      className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all ${isActive ? "right-0.5" : "left-0.5"}`}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </div>
     </div>
   );
 }
+
 
 function AdminTasks() {
   const [tasks, setTasks] = useState<any[]>([]);
@@ -400,10 +183,9 @@ function AdminTasks() {
       (error) => {
         console.warn("Tasks admin fetch error:", error);
       },
-    );
+      );
     return () => unsubscribe();
   }, []);
-
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const handleSaveTask = async () => {
@@ -688,1357 +470,6 @@ function AdminTasks() {
     </div>
   );
 }
-function AdminSettings() {
-  const generateAdminPDF = async () => {
-    try {
-      const docPdf = new jsPDF();
-      docPdf.setFontSize(22);
-      docPdf.text("Admin System Activity Summary", 20, 20);
-
-      docPdf.setFontSize(14);
-      docPdf.text("Generated on: " + new Date().toLocaleString(), 20, 30);
-
-      docPdf.setFontSize(12);
-      let yPos = 50;
-
-      // Fetch summary stats
-      const usersSnap = await getDocs(collection(db, "users"));
-      const tasksSnap = await getDocs(collection(db, "tasks"));
-      const txSnap = await getDocs(collection(db, "transactions"));
-
-      docPdf.text(`Total Users: ${usersSnap.size}`, 20, yPos);
-      yPos += 10;
-      docPdf.text(`Total Tasks: ${tasksSnap.size}`, 20, yPos);
-      yPos += 10;
-      docPdf.text(`Total Transactions: ${txSnap.size}`, 20, yPos);
-      yPos += 20;
-
-      docPdf.text("Recent Transactions (Last 5):", 20, yPos);
-      yPos += 10;
-      
-      const recentTx = txSnap.docs
-        .map(d => d.data())
-        .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-        .slice(0, 5);
-
-      recentTx.forEach((tx: any, index) => {
-         docPdf.text(`${index + 1}. [${tx.type || 'Unknown'}] Amount: ${tx.amount || 0} Status: ${tx.status || 'N/A'}`, 20, yPos);
-         yPos += 10;
-      });
-
-      docPdf.save(`Admin_Activity_Summary_${new Date().getTime()}.pdf`);
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      useUIStore.getState().addToast("Failed to generate PDF. Check console for details.");
-    }
-  };
-
-  const [editing, setEditing] = useState<string | null>(null);
-  const [adminTab, setAdminTab] = useState<"add" | "added">("added");
-  const [editSupportId, setEditSupportId] = useState<number | null>(null);
-  const [editVipId, setEditVipId] = useState<number | null>(null);
-  const [editContent, setEditContent] = useState("");
-  const [coinValues, setCoinValues] = useState<any>({
-    bkash: 1,
-    nagad: 1,
-    rocket: 1,
-    usdt: 0.01,
-    usdc: 0.01,
-    ton: 0.005,
-    trx: 0.1,
-    not: 10,
-    bnb: 0.0001,
-  });
-  const [botSettingData, setBotSettingData] = useState<any>({ botUsername: "", botToken: "", botHostingLink: "", miniAppUrl: "", paymentChannelId: "", othersChannelId: "" });
-  const [developerData, setDeveloperData] = useState<any>({
-    name: "Md Sayed Islam",
-    role: "Lead Developer & Architect",
-    image:
-      "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=b6e3f4",
-    description:
-      "Passionate full-stack developer specializing in premium mobile-first web applications.",
-    telegram: "https://t.me/sayedislam201545",
-    whatsapp: "https://wa.me/8801700000000",
-  });
-  const [supportAgents, setSupportAgents] = useState<any[]>([]);
-  const [adsConfig, setAdsConfig] = useState<any>({
-    adsEnabled: true,
-    dailyAdsLimit: 50,
-    adWatchDuration: 15,
-    rewardPerAd: 50,
-    monetagZoneId: "",
-    monetagSdk: ""
-  });
-  const [rewardsConfig, setRewardsConfig] = useState<any>({
-    dailyBonusReward: 100,
-    vipBonusMultiplier: 1.5,
-  });
-  const [adsTab, setAdsTab] = useState<"general" | "config">("general");
-  const [vipPlans, setVipPlans] = useState<any[]>([]);
-
-  const handleEdit = async (key: string) => {
-    setEditing(key);
-    setAdminTab("added");
-    setEditSupportId(null);
-    setEditVipId(null);
-    const docRef = doc(db, "settings", key === "vip_plan" ? "vip_plans" : key);
-    try {
-      const snap = await getDoc(docRef);
-      if (snap.exists()) {
-        const data = snap.data();
-        if (key === "ads_rewards_config") {
-          const adsSnap = await getDoc(doc(db, "settings", "ads_config"));
-          if (adsSnap.exists()) setAdsConfig({ ...adsConfig, ...adsSnap.data() });
-          const rewSnap = await getDoc(doc(db, "settings", "rewards_config"));
-          if (rewSnap.exists()) setRewardsConfig({ ...rewardsConfig, ...rewSnap.data() });
-        } else if (key === "coin_values") {
-          setCoinValues({ ...coinValues, ...data });
-        } else if (key === "bot_setting") {
-          setBotSettingData(data || { botUsername: "", botToken: "", botHostingLink: "", miniAppUrl: "", paymentChannelId: "", othersChannelId: "" });
-        } else if (key === "developer_profile") {
-          if (data.name) setDeveloperData(data);
-        } else if (key === "support") {
-          if (data.agents) setSupportAgents(data.agents);
-        } else if (key === "vip_plan") {
-          if (data.plans) setVipPlans(data.plans);
-        } else if (data.content) {
-          setEditContent(data.content);
-        } else {
-          setEditContent("");
-        }
-      } else {
-        setEditContent("");
-        if (key === "support") setSupportAgents([]);
-        if (key === "vip_plan") setVipPlans([]);
-      }
-    } catch (e) {
-      console.warn("Fetch permissions error", e);
-      setEditContent("");
-    }
-  };
-
-  const handleSave = async (stayOpen: boolean = false) => {
-    if (editing) {
-      try {
-        
-if (editing === "ads_rewards_config") {
-      return (
-        <AdsRewardsEditor
-          onClose={() => setEditing(null)}
-          onSave={async (adsConfig, rewardsConfig, adsBoxes) => {
-            try {
-              await setDoc(doc(db, "settings", "ads_config"), adsConfig, { merge: true });
-              await setDoc(doc(db, "settings", "rewards_config"), rewardsConfig, { merge: true });
-              await setDoc(doc(db, "settings", "ads_boxes"), { boxes: adsBoxes }, { merge: true });
-              useUIStore.getState().addToast("Saved Settings!");
-              setEditing(null);
-            } catch (e) {
-              useUIStore.getState().addToast("Failed to save", "error");
-            }
-          }}
-          initialAdsConfig={adsConfig}
-          initialRewardsConfig={rewardsConfig}
-        />
-      );
-    }
- if (editing === "coin_values") {
-      return (
-        <CoinValuesEditor
-          onClose={() => setEditing(null)}
-          onSave={async (values) => {
-            await setDoc(doc(db, "settings", "coin_values"), values, { merge: true });
-            useUIStore.getState().addToast("Saved!");
-            setEditing(null);
-          }}
-          initialValues={coinValues}
-        />
-      );
-    }
- if (editing === "bot_setting") {
-        await setDoc(doc(db, "settings", "bot_setting"), botSettingData);
-      } else if (editing === "developer_profile") {
-          await setDoc(
-            doc(db, "settings", "developer_profile"),
-            developerData,
-            { merge: true },
-          );
-        } else if (editing === "support") {
-          await setDoc(
-            doc(db, "settings", "support"),
-            { agents: supportAgents.filter((a) => a.name.trim() !== "") },
-            { merge: true },
-          );
-        } else if (editing === "vip_plan") {
-          await setDoc(
-            doc(db, "settings", "vip_plans"),
-            {
-              plans: vipPlans.filter(
-                (p) => (p.title || p.name || "").trim() !== "",
-              ),
-            },
-            { merge: true },
-          );
-        } else {
-          await setDoc(
-            doc(db, "settings", editing),
-            { content: editContent },
-            { merge: true },
-          );
-        }
-        useUIStore.getState().addToast("Saved!");
-        if (!stayOpen) setEditing(null);
-      } catch (e) {
-        console.warn("Save error", e);
-        try {
-          if (editing === "ads_rewards_config") {
-            await setDoc(doc(db, "settings", "ads_config"), adsConfig, { merge: true });
-            await setDoc(doc(db, "settings", "rewards_config"), rewardsConfig, { merge: true });
-          } else if (editing === "coin_values") {
-            await setDoc(doc(db, "settings", "coin_values"), coinValues);
-          } else if (editing === "developer_profile") {
-            await setDoc(
-              doc(db, "settings", "developer_profile"),
-              developerData,
-            );
-          } else if (editing === "support") {
-            await setDoc(doc(db, "settings", "support"), {
-              agents: supportAgents.filter((a) => a.name.trim() !== ""),
-            });
-          } else if (editing === "vip_plan") {
-            await setDoc(doc(db, "settings", "vip_plans"), {
-              plans: vipPlans.filter(
-                (p) => (p.title || p.name || "").trim() !== "",
-              ),
-            });
-          } else {
-            await setDoc(doc(db, "settings", editing), {
-              content: editContent,
-            });
-          }
-          useUIStore.getState().addToast("Saved!");
-          if (!stayOpen) setEditing(null);
-        } catch (err) {
-          useUIStore.getState().addToast("Failed to save");
-        }
-      }
-    }
-  };
-
-  if (editing) {
-    if (editing === "coin_values") {
-      return (
-        <div className="space-y-6 max-w-4xl">
-          <div className="flex items-center space-x-3 mb-6">
-            <button
-              onClick={() => setEditing(null)}
-              className="text-gray-400 hover:text-white"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <h2 className="text-xl font-bold">Edit Coin Values</h2>
-          </div>
-          <p className="text-sm text-gray-400 mb-6">
-            Set the value of 1 VA coin in different currencies.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.keys(coinValues).map((currency) => (
-              <div
-                key={currency}
-                className="bg-[#151A23] border border-white/5 rounded-xl p-4 flex items-center justify-between"
-              >
-                <span className="font-bold text-white uppercase">
-                  {currency}
-                </span>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-400">1 VA =</span>
-                  <input
-                    type="number"
-                    step="any"
-                    value={coinValues[currency]}
-                    onChange={(e) =>
-                      setCoinValues({
-                        ...coinValues,
-                        [currency]: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="bg-[#0B0E14] border border-white/10 rounded-lg px-3 py-1.5 text-white w-32 focus:outline-none"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <button
-            onClick={handleSave}
-            className="w-full mt-6 bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-xl text-white font-bold shadow-md transition-colors"
-          >
-            Save Coin Values
-          </button>
-        </div>
-      );
-    }
-
-    if (editing === "bot_setting") {
-      return (
-        <div className="space-y-6 max-w-4xl animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center space-x-4 mb-6">
-            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
-            <h2 className="text-xl font-bold">Bot Setting</h2>
-          </div>
-          <div className="bg-[#151A23] rounded-2xl p-6 border border-white/5 shadow-xl space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Bot Username</label>
-              <input type="text" value={botSettingData.botUsername || ""} onChange={(e) => setBotSettingData({...botSettingData, botUsername: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. MySuperBot" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Bot Token</label>
-              <input type="text" value={botSettingData.botToken || ""} onChange={(e) => setBotSettingData({...botSettingData, botToken: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="123456:ABC-DEF..." />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Mini App Link</label>
-              <input type="text" value={botSettingData.miniAppUrl || ""} onChange={(e) => setBotSettingData({...botSettingData, miniAppUrl: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="https://t.me/MyBot/app" />
-            </div>
-            
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Hosting Link</label>
-              <input type="text" value={botSettingData.botHostingLink || ""} onChange={(e) => setBotSettingData({...botSettingData, botHostingLink: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="https://my-app.com" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Payment Channel ID</label>
-              <input type="text" value={botSettingData.paymentChannelId || ""} onChange={(e) => setBotSettingData({...botSettingData, paymentChannelId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="@my_payment_channel or -100xxxxx" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Adars (Others) Message Channel ID</label>
-              <input type="text" value={botSettingData.othersChannelId || ""} onChange={(e) => setBotSettingData({...botSettingData, othersChannelId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="@my_updates_channel or -100xxxxx" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Imgbb API Token</label>
-              <input type="text" value={botSettingData.imgbbApiToken || ""} onChange={(e) => setBotSettingData({...botSettingData, imgbbApiToken: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="Enter Imgbb API Token" />
-            </div>
-            <button onClick={() => {
-              if (!botSettingData.botUsername || !botSettingData.botToken || !botSettingData.miniAppUrl || !botSettingData.botHostingLink || !botSettingData.paymentChannelId || !botSettingData.othersChannelId) {
-                useUIStore.getState().addToast("Please fill all fields correctly to enable the bot.");
-                return;
-              }
-              handleSave(false);
-            }} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg mt-6">
-              Save Settings
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-
-    if (editing === "ads_rewards_config") {
-      return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center space-x-4 mb-6">
-            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
-            <h2 className="text-xl font-bold">Ad & Rewards Settings</h2>
-          </div>
-          
-          <div className="flex space-x-2 bg-[#1C2331] p-1.5 rounded-xl mb-6">
-            <button
-              onClick={() => setAdsTab("general")}
-              className={`flex-1 py-2 rounded-lg font-bold transition-all ${adsTab === "general" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
-            >
-              General Settings
-            </button>
-            <button
-              onClick={() => setAdsTab("config")}
-              className={`flex-1 py-2 rounded-lg font-bold transition-all ${adsTab === "config" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
-            >
-              Ads Configs
-            </button>
-          </div>
-
-          <div className="bg-[#151A23] rounded-2xl p-6 border border-white/5 shadow-xl space-y-4">
-            {adsTab === "general" ? (
-              <>
-                <div className="flex items-center justify-between bg-[#0B0E14] border border-white/10 rounded-lg p-4 mb-4">
-                  <div>
-                    <span className="text-white block font-medium">Enable Ads System</span>
-                    <span className="text-gray-500 text-xs">Turn ad viewing on or off globally.</span>
-                  </div>
-                  <div
-                    className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${adsConfig?.adsEnabled ? "bg-blue-600" : "bg-gray-600"}`}
-                    onClick={() => setAdsConfig({ ...adsConfig, adsEnabled: !adsConfig?.adsEnabled })}
-                  >
-                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${adsConfig?.adsEnabled ? "left-7" : "left-1"}`} />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 mb-1">Daily Ads Limit (per user)</label>
-                  <input type="number" value={adsConfig?.dailyAdsLimit || 0} onChange={(e) => setAdsConfig({...adsConfig, dailyAdsLimit: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 mb-1">Ad Watch Duration (seconds)</label>
-                  <input type="number" value={adsConfig?.adWatchDuration || 0} onChange={(e) => setAdsConfig({...adsConfig, adWatchDuration: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 mb-1">Reward Per Ad (Coins)</label>
-                  <input type="number" value={adsConfig?.rewardPerAd || 0} onChange={(e) => setAdsConfig({...adsConfig, rewardPerAd: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
-                </div>
-                <div className="pt-4 border-t border-white/10">
-                  <label className="block text-xs font-bold text-gray-400 mb-1">Daily Bonus Claim Reward (Coins)</label>
-                  <input type="number" value={rewardsConfig?.dailyBonusReward || 0} onChange={(e) => setRewardsConfig({...rewardsConfig, dailyBonusReward: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 mb-1">VIP Bonus Multiplier</label>
-                  <input type="number" step="0.1" value={rewardsConfig?.vipBonusMultiplier || 1} onChange={(e) => setRewardsConfig({...rewardsConfig, vipBonusMultiplier: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 mb-1">Monetag Direct Link URL</label>
-                  <input type="text" value={adsConfig?.monetagZoneId || ""} onChange={(e) => setAdsConfig({...adsConfig, monetagZoneId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. https://directlink..." />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 mb-1">Monetag Script URL (In-App Ad)</label>
-                  <input type="text" value={adsConfig?.monetagScriptUrl || ""} onChange={(e) => setAdsConfig({...adsConfig, monetagScriptUrl: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. //thubanoa.com/1?z=12345" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 mb-1">Monetag SDK Function Name</label>
-                  <input type="text" value={adsConfig?.monetagSdk || ""} onChange={(e) => setAdsConfig({...adsConfig, monetagSdk: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. show_9955574" />
-                </div>
-              </>
-            )}
-            <button onClick={() => handleSave(false)} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg mt-6">
-              Save Settings
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    if (editing === "developer_profile") {
-      return (
-        <div className="space-y-6 max-w-4xl">
-          <div className="flex items-center space-x-3 mb-6">
-            <button
-              onClick={() => setEditing(null)}
-              className="text-gray-400 hover:text-white"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <h2 className="text-xl font-bold">Edit Developer Profile</h2>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">
-                Photo URL
-              </label>
-              <input
-                type="text"
-                value={developerData.image || ""}
-                onChange={(e) =>
-                  setDeveloperData({ ...developerData, image: e.target.value })
-                }
-                className="w-full bg-[#151A23] border border-white/10 rounded-xl p-3 text-white focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">
-                Name
-              </label>
-              <input
-                type="text"
-                value={developerData.name || ""}
-                onChange={(e) =>
-                  setDeveloperData({ ...developerData, name: e.target.value })
-                }
-                className="w-full bg-[#151A23] border border-white/10 rounded-xl p-3 text-white focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">
-                Title / Role
-              </label>
-              <input
-                type="text"
-                value={developerData.role || ""}
-                onChange={(e) =>
-                  setDeveloperData({ ...developerData, role: e.target.value })
-                }
-                className="w-full bg-[#151A23] border border-white/10 rounded-xl p-3 text-white focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">
-                Description
-              </label>
-              <textarea
-                value={developerData.description || ""}
-                onChange={(e) =>
-                  setDeveloperData({
-                    ...developerData,
-                    description: e.target.value,
-                  })
-                }
-                className="w-full h-24 bg-[#151A23] border border-white/10 rounded-xl p-3 text-white focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">
-                Telegram URL
-              </label>
-              <input
-                type="text"
-                value={developerData.telegram || ""}
-                onChange={(e) =>
-                  setDeveloperData({
-                    ...developerData,
-                    telegram: e.target.value,
-                  })
-                }
-                className="w-full bg-[#151A23] border border-white/10 rounded-xl p-3 text-white focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">
-                WhatsApp URL
-              </label>
-              <input
-                type="text"
-                value={developerData.whatsapp || ""}
-                onChange={(e) =>
-                  setDeveloperData({
-                    ...developerData,
-                    whatsapp: e.target.value,
-                  })
-                }
-                className="w-full bg-[#151A23] border border-white/10 rounded-xl p-3 text-white focus:outline-none"
-              />
-            </div>
-          </div>
-          <button
-            onClick={handleSave}
-            className="w-full mt-6 bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-xl text-white font-bold shadow-md transition-colors"
-          >
-            Save Developer Profile
-          </button>
-        </div>
-      );
-    }
-
-    if (editing === "support") {
-      return (
-        <div className="space-y-6 max-w-4xl">
-          <div className="flex items-center space-x-3 mb-6">
-            <button
-              onClick={() => setEditing(null)}
-              className="text-gray-400 hover:text-white"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <h2 className="text-xl font-bold">Edit Help & Support</h2>
-          </div>
-
-          <div className="flex space-x-2 bg-[#1C2331] p-1.5 rounded-xl mb-6">
-            <button
-              onClick={() => {
-                const newId = Date.now();
-                setEditSupportId(newId);
-                setSupportAgents([
-                  ...supportAgents.filter((a) => a.name.trim() !== ""),
-                  {
-                    id: newId,
-                    name: "",
-                    role: "",
-                    image: "",
-                    action: "",
-                    link: "",
-                    color: "blue",
-                  },
-                ]);
-                setAdminTab("add");
-              }}
-              className={`flex-1 py-2 rounded-lg font-bold transition-all ${adminTab === "add" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
-            >
-              Add
-            </button>
-            <button
-              onClick={() => {
-                setSupportAgents(
-                  supportAgents.filter((a) => a.name.trim() !== ""),
-                );
-                setAdminTab("added");
-              }}
-              className={`flex-1 py-2 rounded-lg font-bold transition-all ${adminTab === "added" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
-            >
-              Added
-            </button>
-          </div>
-
-          {adminTab === "added" && (
-            <div className="bg-[#151A23] rounded-xl border border-white/5 overflow-hidden">
-              <table className="w-full text-left text-sm text-gray-400">
-                <thead className="bg-[#1C2331] text-gray-300 uppercase text-xs">
-                  <tr>
-                    <th className="px-6 py-4">Photo</th>
-                    <th className="px-6 py-4">Name</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {supportAgents.map((agent) => (
-                    <tr key={agent.id} className="hover:bg-white/[0.02]">
-                      <td className="px-6 py-4">
-                        <img
-                          src={
-                            agent.image ||
-                            `https://api.dicebear.com/7.x/initials/svg?seed=${agent.name || "A"}`
-                          }
-                          alt=""
-                          className="w-10 h-10 rounded-full object-cover bg-gray-800"
-                        />
-                      </td>
-                      <td className="px-6 py-4 font-bold text-white">
-                        {agent.name || "Unnamed Agent"}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end space-x-2">
-                          <button
-                            onClick={() => {
-                              setEditSupportId(agent.id);
-                              setAdminTab("add");
-                            }}
-                            className="p-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 rounded-lg transition-colors"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (true) {
-    const updatedAgents = supportAgents.filter(a => a.id !== agent.id);
-    setSupportAgents(updatedAgents);
-    setDoc(doc(db, "settings", "support"), { agents: updatedAgents }, { merge: true });
-  }
-                            }}
-                            className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {supportAgents.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={3}
-                        className="px-6 py-8 text-center text-gray-500"
-                      >
-                        No support agents added. Click "Add" to start.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-              <div className="p-4 border-t border-white/5">
-                <button
-                  onClick={() => handleSave(true)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-xl text-white font-bold shadow-md transition-colors"
-                >
-                  Save Changes to Database
-                </button>
-              </div>
-            </div>
-          )}
-
-          {adminTab === "add" && (
-            <div className="space-y-6">
-              {supportAgents
-                .filter((a) => a.id === editSupportId)
-                .map((agent) => {
-                  const index = supportAgents.findIndex(
-                    (a) => a.id === agent.id,
-                  );
-                  return (
-                    <div
-                      key={agent.id}
-                      className="bg-[#151A23] border border-white/10 rounded-xl p-6 relative shadow-lg"
-                    >
-                      <h3 className="text-lg font-bold text-white mb-6">
-                        Edit Support Agent
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-bold text-gray-400 mb-1">
-                            Name
-                          </label>
-                          <input
-                            type="text"
-                            value={agent.name}
-                            onChange={(e) => {
-                              const newAgents = [...supportAgents];
-                              newAgents[index].name = e.target.value;
-                              setSupportAgents(newAgents);
-                            }}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-gray-400 mb-1">
-                            Role (e.g. Technical Assistant)
-                          </label>
-                          <input
-                            type="text"
-                            value={agent.role}
-                            onChange={(e) => {
-                              const newAgents = [...supportAgents];
-                              newAgents[index].role = e.target.value;
-                              setSupportAgents(newAgents);
-                            }}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="block text-xs font-bold text-gray-400 mb-1">
-                            Photo URL
-                          </label>
-                          <input
-                            type="text"
-                            value={agent.image}
-                            onChange={(e) => {
-                              const newAgents = [...supportAgents];
-                              newAgents[index].image = e.target.value;
-                              setSupportAgents(newAgents);
-                            }}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-gray-400 mb-1">
-                            Action Button Text
-                          </label>
-                          <input
-                            type="text"
-                            value={agent.action}
-                            onChange={(e) => {
-                              const newAgents = [...supportAgents];
-                              newAgents[index].action = e.target.value;
-                              setSupportAgents(newAgents);
-                            }}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-gray-400 mb-1">
-                            Button URL (Link)
-                          </label>
-                          <input
-                            type="text"
-                            value={agent.link}
-                            onChange={(e) => {
-                              const newAgents = [...supportAgents];
-                              newAgents[index].link = e.target.value;
-                              setSupportAgents(newAgents);
-                            }}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-gray-400 mb-1">
-                            Color Theme
-                          </label>
-                          <select
-                            value={agent.color}
-                            onChange={(e) => {
-                              const newAgents = [...supportAgents];
-                              newAgents[index].color = e.target.value;
-                              setSupportAgents(newAgents);
-                            }}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                          >
-                            <option value="blue">
-                              Blue (Telegram/General)
-                            </option>
-                            <option value="green">
-                              Green (WhatsApp/Group)
-                            </option>
-                            <option value="red">Red (Email/Urgent)</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              <div className="flex space-x-3">
-                <button
-                  onClick={async () => {
-                    const currentAgent = supportAgents.find(
-                      (a) => a.id === editSupportId,
-                    );
-                    if (!currentAgent?.name.trim()) {
-                      useUIStore.getState().addToast("Please enter a name before saving.");
-                      return;
-                    }
-                    await handleSave(true);
-                    setAdminTab("added");
-                  }}
-                  className="flex-1 bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl text-white font-bold shadow-md transition-colors"
-                >
-                  Save Changes
-                </button>
-                <button
-                  onClick={() => {
-                    setSupportAgents(
-                      supportAgents.filter((a) => a.name.trim() !== ""),
-                    );
-                    setAdminTab("added");
-                  }}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 px-6 py-3 rounded-xl text-white font-bold shadow-md transition-colors"
-                >
-                  Back to List
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-    if (editing === "vip_plan") {
-      return (
-        <div className="space-y-6 max-w-4xl">
-          <div className="flex items-center space-x-3 mb-6">
-            <button
-              onClick={() => setEditing(null)}
-              className="text-gray-400 hover:text-white"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <h2 className="text-xl font-bold">VIP Plan Management</h2>
-          </div>
-
-          <div className="flex space-x-2 bg-[#1C2331] p-1.5 rounded-xl mb-6">
-            <button
-              onClick={() => {
-                const newId = Date.now();
-                setEditVipId(newId);
-                setVipPlans([
-                  ...vipPlans.filter(
-                    (p) => (p.title || p.name || "").trim() !== "",
-                  ),
-                  {
-                    id: newId,
-                    name: "",
-                    title: "",
-                    photo: "",
-                    duration: 30,
-                    coin: 299,
-                    currency: "৳",
-                    buttonText: "Buy Plan",
-                    buttonColor: "from-amber-500 to-orange-500",
-                    themeColor: "amber",
-                    animationStyle: "glow",
-                    status: "active",
-                    sortOrder: 1,
-                    features: [],
-                  },
-                ]);
-                setAdminTab("add");
-              }}
-              className={`flex-1 py-2 rounded-lg font-bold transition-all ${adminTab === "add" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
-            >
-              Add
-            </button>
-            <button
-              onClick={() => {
-                setVipPlans(
-                  vipPlans.filter(
-                    (p) => (p.title || p.name || "").trim() !== "",
-                  ),
-                );
-                setAdminTab("added");
-              }}
-              className={`flex-1 py-2 rounded-lg font-bold transition-all ${adminTab === "added" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
-            >
-              Added
-            </button>
-          </div>
-
-          {adminTab === "added" && (
-            <div className="bg-[#151A23] rounded-xl border border-white/5 overflow-hidden">
-              <table className="w-full text-left text-sm text-gray-400">
-                <thead className="bg-[#1C2331] text-gray-300 uppercase text-xs">
-                  <tr>
-                    <th className="px-6 py-4">Photo</th>
-                    <th className="px-6 py-4">Plan Title</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {vipPlans.map((plan) => (
-                    <tr key={plan.id} className="hover:bg-white/[0.02]">
-                      <td className="px-6 py-4">
-                        <img
-                          src={
-                            plan.photo ||
-                            `https://api.dicebear.com/7.x/initials/svg?seed=${plan.title || plan.name || "VIP"}`
-                          }
-                          alt=""
-                          className="w-10 h-10 rounded-full object-cover bg-gray-800"
-                        />
-                      </td>
-                      <td className="px-6 py-4 font-bold text-white">
-                        {plan.title || plan.name || "Unnamed Plan"}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end space-x-2">
-                          <button
-                            onClick={() => {
-                              setEditVipId(plan.id);
-                              setAdminTab("add");
-                            }}
-                            className="p-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 rounded-lg transition-colors"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (true) {
-    const updatedPlans = vipPlans.filter(p => p.id !== plan.id);
-    setVipPlans(updatedPlans);
-    setDoc(doc(db, "settings", "vip_plans"), { plans: updatedPlans.filter((p: any) => (p.title || p.name || "").trim() !== "") }, { merge: true });
-  }
-                            }}
-                            className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {vipPlans.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={3}
-                        className="px-6 py-8 text-center text-gray-500"
-                      >
-                        No VIP Plans added. Click "Add" to start.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-              <div className="p-4 border-t border-white/5">
-                <button
-                  onClick={() => handleSave(true)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-xl text-white font-bold shadow-md transition-colors"
-                >
-                  Save Changes to Database
-                </button>
-              </div>
-            </div>
-          )}
-
-          {adminTab === "add" && (
-            <div className="space-y-6">
-              {vipPlans
-                .filter((p) => p.id === editVipId)
-                .map((plan) => {
-                  const index = vipPlans.findIndex((p) => p.id === plan.id);
-                  return (
-                    <div
-                      key={plan.id}
-                      className="bg-[#151A23] border border-white/10 rounded-xl p-6 relative shadow-lg"
-                    >
-                      <h3 className="text-lg font-bold text-white mb-6">
-                        Edit VIP Plan
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <div>
-                          <label className="block text-xs font-bold text-gray-400 mb-1">
-                            Plan Title
-                          </label>
-                          <input
-                            type="text"
-                            value={plan.title || ""}
-                            onChange={(e) => {
-                              const newPlans = [...vipPlans];
-                              newPlans[index].title = e.target.value;
-                              setVipPlans(newPlans);
-                            }}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                          />
-                        </div>
-                        <div className="md:col-span-1">
-                          <label className="block text-xs font-bold text-gray-400 mb-1">
-                            Top Banner Image URL
-                          </label>
-                          <input
-                            type="text"
-                            value={plan.photo || ""}
-                            onChange={(e) => {
-                              const newPlans = [...vipPlans];
-                              newPlans[index].photo = e.target.value;
-                              setVipPlans(newPlans);
-                            }}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-gray-400 mb-1">
-                            Duration (Days)
-                          </label>
-                          <input
-                            type="number"
-                            value={plan.duration || ""}
-                            onChange={(e) => {
-                              const newPlans = [...vipPlans];
-                              newPlans[index].duration = Number(e.target.value);
-                              setVipPlans(newPlans);
-                            }}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-gray-400 mb-1">
-                            Price
-                          </label>
-                          <input
-                            type="number"
-                            value={plan.coin || ""}
-                            onChange={(e) => {
-                              const newPlans = [...vipPlans];
-                              newPlans[index].coin = Number(e.target.value);
-                              setVipPlans(newPlans);
-                            }}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-gray-400 mb-1">
-                            Currency Symbol (e.g. ৳)
-                          </label>
-                          <input
-                            type="text"
-                            value={plan.currency || ""}
-                            onChange={(e) => {
-                              const newPlans = [...vipPlans];
-                              newPlans[index].currency = e.target.value;
-                              setVipPlans(newPlans);
-                            }}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-gray-400 mb-1">
-                            Button Text
-                          </label>
-                          <input
-                            type="text"
-                            value={plan.buttonText || ""}
-                            onChange={(e) => {
-                              const newPlans = [...vipPlans];
-                              newPlans[index].buttonText = e.target.value;
-                              setVipPlans(newPlans);
-                            }}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-gray-400 mb-1">
-                            Button Color (Tailwind classes)
-                          </label>
-                          <input
-                            type="text"
-                            value={plan.buttonColor || ""}
-                            onChange={(e) => {
-                              const newPlans = [...vipPlans];
-                              newPlans[index].buttonColor = e.target.value;
-                              setVipPlans(newPlans);
-                            }}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-gray-400 mb-1">
-                            Theme Color
-                          </label>
-                          <input
-                            type="text"
-                            value={plan.themeColor || ""}
-                            onChange={(e) => {
-                              const newPlans = [...vipPlans];
-                              newPlans[index].themeColor = e.target.value;
-                              setVipPlans(newPlans);
-                            }}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-gray-400 mb-1">
-                            Animation Style
-                          </label>
-                          <select
-                            value={plan.animationStyle || "glow"}
-                            onChange={(e) => {
-                              const newPlans = [...vipPlans];
-                              newPlans[index].animationStyle = e.target.value;
-                              setVipPlans(newPlans);
-                            }}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                          >
-                            <option value="glow">Glow Animation</option>
-                            <option value="float">Floating Animation</option>
-                            <option value="pulse">Pulse Animation</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-gray-400 mb-1">
-                            Status
-                          </label>
-                          <select
-                            value={plan.status || "active"}
-                            onChange={(e) => {
-                              const newPlans = [...vipPlans];
-                              newPlans[index].status = e.target.value;
-                              setVipPlans(newPlans);
-                            }}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                          >
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-gray-400 mb-1">
-                            Sort Order
-                          </label>
-                          <input
-                            type="number"
-                            value={plan.sortOrder || 0}
-                            onChange={(e) => {
-                              const newPlans = [...vipPlans];
-                              newPlans[index].sortOrder = Number(
-                                e.target.value,
-                              );
-                              setVipPlans(newPlans);
-                            }}
-                            className="w-full bg-[#0B0E14] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="bg-[#0B0E14] rounded-lg p-4 border border-white/5">
-                        <div className="flex items-center justify-between mb-4">
-                          <label className="block text-sm font-bold text-gray-300">
-                            Features List
-                          </label>
-                          <button
-                            onClick={() => {
-                              const newPlans = [...vipPlans];
-                              if (!newPlans[index].features)
-                                newPlans[index].features = [];
-                              newPlans[index].features.push({
-                                id: Date.now(),
-                                text: "",
-                              });
-                              setVipPlans(newPlans);
-                            }}
-                            className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-bold flex items-center space-x-1"
-                          >
-                            <Plus className="w-3 h-3" />{" "}
-                            <span>Add Feature</span>
-                          </button>
-                        </div>
-                        <div className="space-y-2">
-                          {plan.features?.map(
-                            (feature: any, fIndex: number) => (
-                              <div
-                                key={feature.id}
-                                className="flex items-center space-x-3"
-                              >
-                                <span className="w-6 h-6 rounded-md bg-[#1C2331] text-gray-400 flex items-center justify-center text-xs font-bold">
-                                  {fIndex + 1}
-                                </span>
-                                <input
-                                  type="text"
-                                  value={feature.text}
-                                  onChange={(e) => {
-                                    const newPlans = [...vipPlans];
-                                    newPlans[index].features[fIndex].text =
-                                      e.target.value;
-                                    setVipPlans(newPlans);
-                                  }}
-                                  className="flex-1 bg-[#1C2331] border border-white/10 rounded-lg p-2 text-white focus:outline-none text-sm"
-                                  placeholder="Enter feature description..."
-                                />
-                                <button
-                                  onClick={() => {
-                                    const newPlans = [...vipPlans];
-                                    newPlans[index].features = newPlans[
-                                      index
-                                    ].features.filter(
-                                      (_: any, i: number) => i !== fIndex,
-                                    );
-                                    setVipPlans(newPlans);
-                                  }}
-                                  className="p-2 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            ),
-                          )}
-                          {(!plan.features || plan.features.length === 0) && (
-                            <p className="text-gray-500 text-xs text-center py-2">
-                              No features added yet.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              <div className="flex space-x-3">
-                <button
-                  onClick={async () => {
-                    const currentPlan = vipPlans.find(
-                      (p) => p.id === editVipId,
-                    );
-                    if (
-                      !(currentPlan?.title || currentPlan?.name || "").trim()
-                    ) {
-                      useUIStore.getState().addToast("Please enter a plan title before saving.");
-                      return;
-                    }
-                    await handleSave(true);
-                    setAdminTab("added");
-                  }}
-                  className="flex-1 bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl text-white font-bold shadow-md transition-colors"
-                >
-                  Save Changes
-                </button>
-                <button
-                  onClick={() => {
-                    setVipPlans(
-                      vipPlans.filter(
-                        (p) => (p.title || p.name || "").trim() !== "",
-                      ),
-                    );
-                    setAdminTab("added");
-                  }}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 px-6 py-3 rounded-xl text-white font-bold shadow-md transition-colors"
-                >
-                  Back to List
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-    return (
-      <div className="space-y-6 max-w-4xl">
-        <div className="flex items-center space-x-3 mb-6">
-          <button
-            onClick={() => setEditing(null)}
-            className="text-gray-400 hover:text-white"
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <h2 className="text-xl font-bold">Edit Content</h2>
-        </div>
-        <textarea
-          value={editContent}
-          onChange={(e) => setEditContent(e.target.value)}
-          className="w-full h-64 bg-[#151A23] border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-blue-500"
-          placeholder="Type Markdown or plain text here..."
-        />
-        <button
-          onClick={handleSave}
-          className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg text-white font-medium shadow-md"
-        >
-          Save Content
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6 max-w-4xl">
-      <h2 className="text-2xl font-bold mb-6 text-white tracking-tight">
-        App Content & Settings
-      </h2>
-      <p className="text-gray-400 text-sm mb-6 max-w-2xl">
-        Manage all customizable content shown in the user's Profile/Menu screen.
-        Update terms, guidelines, about pages, and other localized texts here.
-      </p>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {[
-          {
-            label: "Developer Profile",
-            key: "developer_profile",
-            desc: "Set developer details and social links",
-            icon: "👨‍💻",
-          },
-          {
-            label: "Help & Support",
-            key: "support",
-            desc: "Manage support agents",
-            icon: "🎧",
-          },
-          {
-            label: "VIP Plan",
-            key: "vip_plan",
-            desc: "Setup VIP subscription tiers and benefits",
-            icon: "👑",
-          },
-          {
-            label: "Coin Values",
-            key: "coin_values",
-            desc: "Set conversion rates for methods",
-            icon: "💱",
-          },
-          {
-            label: "Ads & Rewards Settings",
-            key: "ads_rewards_config",
-            desc: "Configure ads limits and reward bonuses",
-            icon: "💸",
-          },
-          {
-            label: "Bot Setting",
-            key: "bot_setting",
-            desc: "Configure telegram bot integration",
-            icon: "🤖",
-          },
-        ].map((section) => (
-          <div
-            key={section.key}
-            className="bg-[#151A23] p-5 rounded-2xl border border-white/5 flex flex-col justify-between hover:border-white/10 transition-colors group"
-          >
-            <div className="flex items-start space-x-3 mb-4">
-              <span className="text-2xl">{section.icon}</span>
-              <div>
-                <h3 className="font-bold text-white text-base">
-                  {section.label}
-                </h3>
-                <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                  {section.desc}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => handleEdit(section.key)}
-              className="w-full py-2.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 rounded-xl transition-colors text-sm font-bold border border-blue-600/20 group-hover:border-blue-600/40"
-            >
-              Edit Content
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function AdminSubmissions() {
   const [submissions, setSubmissions] = useState<any[]>([]);
 
@@ -2047,14 +478,8 @@ function AdminSubmissions() {
     const unsubscribe = onSnapshot(subRef, (snapshot) => {
       if (!snapshot.empty) {
         const subsArray: any[] = [];
-        snapshot.docs.forEach((docSnap) => {
+        snapshot.forEach((docSnap) => {
           subsArray.push({ id: docSnap.id, ...docSnap.data() });
-        });
-        // Sort pending first
-        subsArray.sort((a, b) => {
-          if (a.status === "pending" && b.status !== "pending") return -1;
-          if (a.status !== "pending" && b.status === "pending") return 1;
-          return 0;
         });
         setSubmissions(subsArray);
       } else {
@@ -2064,12 +489,7 @@ function AdminSubmissions() {
     return () => unsubscribe();
   }, []);
 
-  const handleStatusUpdate = async (
-    id: string,
-    newStatus: string,
-    userId: string,
-    reward: number,
-  ) => {
+  const handleStatusUpdate = async (id: string, newStatus: string, userId: string, reward: number) => {
     try {
       await updateDoc(doc(db, "task_submissions", id), { status: newStatus });
       if (newStatus === "approved" && userId) {
@@ -2077,9 +497,7 @@ function AdminSubmissions() {
         const userSnap = await getDoc(userRef);
         if (userSnap.exists()) {
           const userData = userSnap.data();
-          await updateDoc(userRef, {
-            vaBalance: (userData.vaBalance || 0) + reward,
-          });
+          await updateDoc(userRef, { vaBalance: (userData.vaBalance || 0) + reward });
         }
         useUIStore.getState().addToast(`Submission approved! ${reward} VA rewarded to user.`);
       } else if (newStatus === "rejected") {
@@ -2093,107 +511,22 @@ function AdminSubmissions() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold tracking-tight">
-          Task Submissions Review
-        </h2>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <h2 className="text-xl font-bold mb-4">Task Submissions</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {submissions.map((sub) => (
-          <div
-            key={sub.id}
-            className="bg-[#151A23] rounded-2xl border border-white/5 p-5 shadow-lg relative overflow-hidden group hover:border-white/10 transition-colors flex flex-col"
-          >
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold border border-blue-500/30">
-                  {(sub.username || "U").substring(0, 2).toUpperCase()}
-                </div>
-                <div>
-                  <h3 className="font-bold text-white text-sm">
-                    {sub.username || "Unknown User"}
-                  </h3>
-                  <p className="text-xs text-gray-400">
-                    {new Date(sub.createdAt || Date.now()).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-              <span
-                className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${sub.status === "pending" ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" : sub.status === "approved" ? "bg-green-500/20 text-green-400 border border-green-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"}`}
-              >
-                {sub.status || "pending"}
-              </span>
-            </div>
-
-            <div className="bg-[#0B0E14] rounded-xl p-3 mb-4 border border-white/5 flex-1">
-              <p className="text-sm font-bold text-gray-200 mb-1">
-                {sub.taskTitle}
-              </p>
-              <p className="text-xs text-yellow-400 font-bold mb-3">
-                Reward: {sub.reward} VA
-              </p>
-
-              <div className="text-xs text-gray-400 mb-2">
-                <span className="text-gray-500">Note:</span>{" "}
-                {sub.note || "No notes provided."}
-              </div>
-                            {sub.profileLink && (
-                <a
-                  href={sub.profileLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center space-x-1.5 text-blue-400 hover:text-blue-300 font-medium mb-3"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>View Profile / Proof Link</span>
-                </a>
-              )}
-              {sub.imageUrls && sub.imageUrls.length > 0 && (
-                <div className="flex space-x-2 mt-2">
-                  {sub.imageUrls.map((url, i) => (
-                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="w-16 h-16 rounded-lg overflow-hidden border border-gray-700 hover:border-blue-500 transition-colors">
-                      <img src={url} alt={`Proof ${i+1}`} className="w-full h-full object-cover" />
-                    </a>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {sub.status === "pending" && (
-              <div className="flex space-x-3 mt-auto">
-                <button
-                  onClick={() =>
-                    handleStatusUpdate(
-                      sub.id,
-                      "approved",
-                      sub.userId,
-                      sub.reward,
-                    )
-                  }
-                  className="flex-1 py-2.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-xl font-bold transition-colors border border-green-500/30 text-sm"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() =>
-                    handleStatusUpdate(sub.id, "rejected", sub.userId, 0)
-                  }
-                  className="flex-1 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl font-bold transition-colors border border-red-500/30 text-sm"
-                >
-                  Reject
-                </button>
-              </div>
+          <div key={sub.id} className="bg-[#151A23] p-4 rounded-xl border border-white/10">
+            <p className="font-bold">Task: {sub.taskTitle}</p>
+            <p className="text-sm text-gray-400">User ID: {sub.userId}</p>
+            {sub.proofUrl && (
+              <img src={sub.proofUrl} alt="Proof" className="w-full h-32 object-cover mt-2 rounded" />
             )}
+            <div className="mt-4 flex space-x-2">
+              <button onClick={() => handleStatusUpdate(sub.id, "approved", sub.userId, sub.reward || 0)} className="px-3 py-1 bg-green-500/20 text-green-400 rounded hover:bg-green-500 hover:text-white text-sm">Approve</button>
+              <button onClick={() => handleStatusUpdate(sub.id, "rejected", sub.userId, sub.reward || 0)} className="px-3 py-1 bg-red-500/20 text-red-400 rounded hover:bg-red-500 hover:text-white text-sm">Reject</button>
+            </div>
           </div>
         ))}
-        {submissions.length === 0 && (
-          <div className="col-span-full p-12 text-center text-gray-500 bg-[#151A23] rounded-2xl border border-white/5">
-            <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p className="font-medium text-lg">No submissions pending.</p>
-            <p className="text-sm mt-1">All caught up!</p>
-          </div>
-        )}
+        {submissions.length === 0 && <p className="text-gray-400">No submissions found.</p>}
       </div>
     </div>
   );
@@ -2201,315 +534,77 @@ function AdminSubmissions() {
 
 function AdminUsers() {
   const [users, setUsers] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<"all" | "normal" | "vip">("all");
-  const [userStatusFilter, setUserStatusFilter] = useState<"all" | "active" | "inactive" | "banned">("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedUser, setSelectedUser] = useState<any | null>(null);
-  const [coinAmount, setCoinAmount] = useState<number | "">("");
-  const [coinAction, setCoinAction] = useState<"add" | "remove">("add");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
-    const usersRef = collection(db, "users");
-    const unsub = onSnapshot(usersRef, (snap) => {
-      const u: any[] = [];
-      snap.docs.forEach((doc) => {
-        u.push({ id: doc.id, ...doc.data() });
-      });
-      setUsers(u);
+    const unsub = onSnapshot(collection(db, "users"), (snap) => {
+      const arr: any[] = [];
+      snap.forEach(d => arr.push({ id: d.id, ...d.data() }));
+      setUsers(arr);
     });
     return () => unsub();
   }, []);
 
-  const filteredUsers = users.filter((u) => {
-    // Check VIP vs Normal
-    const isVip = u.isVip === true;
-    if (activeTab === "vip" && !isVip) return false;
-    if (activeTab === "normal" && isVip) return false;
-    // if activeTab === "all" do nothing
-
-
-    // Check Status Filter
-    const uStatus = u.status || "active"; // "banned", "active"
-    if (userStatusFilter === "banned" && uStatus !== "banned") return false;
-    if (userStatusFilter === "active" && uStatus !== "active") return false;
-    // For inactive, let's assume they haven't logged in recently or it's a special status
-    if (userStatusFilter === "inactive" && uStatus !== "inactive") return false;
-
-    // Check Search Query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const matchName = u.username?.toLowerCase().includes(query);
-      const matchId = u.uid?.toLowerCase().includes(query);
-      if (!matchName && !matchId) return false;
-    }
-
-    return true;
-  });
-
-  const handleUpdateCoins = async () => {
-    if (!selectedUser || typeof coinAmount !== "number" || coinAmount <= 0)
-      return;
+  const handleUpdateRole = async (userId: string, newRole: string) => {
     try {
-      const userRef = doc(db, "users", selectedUser.id);
-      const currentCoins = selectedUser.vaBalance || 0;
-      const newCoins =
-        coinAction === "add"
-          ? currentCoins + coinAmount
-          : Math.max(0, currentCoins - coinAmount);
-      await updateDoc(userRef, { vaBalance: newCoins });
-
-      // Update local state temporarily so UI reflects before snap
-      setSelectedUser({ ...selectedUser, vaBalance: newCoins });
-      setCoinAmount("");
-      useUIStore.getState().addToast(`Successfully updated coins! New balance: ${newCoins}`);
-    } catch (e) {
-      console.error(e);
-      useUIStore.getState().addToast("Error updating coins");
+      await updateDoc(doc(db, "users", userId), { role: newRole });
+      useUIStore.getState().addToast("User role updated");
+    } catch(e) {
+      useUIStore.getState().addToast("Error updating role", "error");
     }
-  };
-
-  const handleToggleBan = async () => {
-    if (!selectedUser) return;
-    try {
-      const userRef = doc(db, "users", selectedUser.id);
-      const isBanned = selectedUser.status === "banned";
-      await updateDoc(userRef, { status: isBanned ? "active" : "banned" });
-      setSelectedUser({
-        ...selectedUser,
-        status: isBanned ? "active" : "banned",
-      });
-      useUIStore.getState().addToast(`User ${isBanned ? "Unbanned" : "Banned"} successfully!`);
-    } catch (e) {
-      console.error(e);
-      useUIStore.getState().addToast("Error updating status");
-    }
-  };
-
-  const handleToggleAdmin = async () => {
-    if (!selectedUser) return;
-    if (selectedUser.role === "super_admin" || selectedUser.uid === "12Mz6ut6CSah4ZIUfUYbZzdsm5J2") {
-      useUIStore.getState().addToast("Cannot modify super_admin role.");
-      return;
-    }
-    try {
-      const userRef = doc(db, "users", selectedUser.id);
-      const isAdmin = selectedUser.role === "admin";
-      await updateDoc(userRef, { role: isAdmin ? "user" : "admin" });
-      setSelectedUser({
-        ...selectedUser,
-        role: isAdmin ? "user" : "admin",
-      });
-      useUIStore.getState().addToast(`User is now ${isAdmin ? "User" : "Admin"}!`);
-    } catch (e) {
-      console.error(e);
-      useUIStore.getState().addToast("Error updating role");
-    }
-  };
-
-  if (selectedUser) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => setSelectedUser(null)}
-            className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors"
-          >
-            <X className="w-5 h-5 text-gray-400" />
-          </button>
-          <h2 className="text-xl font-bold tracking-tight">User Details</h2>
-        </div>
-
-        <div className="bg-[#151A23] rounded-2xl border border-white/5 p-6 shadow-lg">
-          <div className="flex items-center space-x-4 mb-8">
-            <div className="w-16 h-16 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xl border-2 border-blue-500/30">
-              {(selectedUser.username || "U").substring(0, 2).toUpperCase()}
-            </div>
-            <div>
-              <h3 className="font-bold text-white text-lg">
-                {selectedUser.username || "Unknown"}
-              </h3>
-              <p className="text-gray-400 text-sm">ID: {selectedUser.uid}</p>
-              <div className="flex space-x-2 mt-2">
-                <span
-                  className={`px-2 py-0.5 rounded text-xs font-bold ${selectedUser.role === "vip" ? "bg-purple-500/20 text-purple-400" : "bg-blue-500/20 text-blue-400"}`}
-                >
-                  {selectedUser.role === "vip" ? "VIP" : "Normal"}
-                </span>
-                <span
-                  className={`px-2 py-0.5 rounded text-xs font-bold ${selectedUser.status === "banned" ? "bg-red-500/20 text-red-400" : "bg-green-500/20 text-green-400"}`}
-                >
-                  {selectedUser.status === "banned" ? "Banned" : "Active"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="bg-[#0B0E14] rounded-xl p-4 border border-white/5">
-              <p className="text-gray-500 text-xs mb-1">Coin Balance</p>
-              <p className="text-xl font-black text-yellow-400">
-                {selectedUser.vaBalance || 0}{" "}
-                <span className="text-sm">VA</span>
-              </p>
-            </div>
-            <div className="bg-[#0B0E14] rounded-xl p-4 border border-white/5">
-              <p className="text-gray-500 text-xs mb-1">Total Earned</p>
-              <p className="text-xl font-black text-green-400">
-                {selectedUser.totalEarned || 0}{" "}
-                <span className="text-sm">VA</span>
-              </p>
-            </div>
-            <div className="bg-[#0B0E14] rounded-xl p-4 border border-white/5">
-              <p className="text-gray-500 text-xs mb-1">Total Referrals</p>
-              <p className="text-xl font-black text-blue-400">
-                {selectedUser.referralCount || 0}
-              </p>
-            </div>
-            <div className="bg-[#0B0E14] rounded-xl p-4 border border-white/5">
-              <p className="text-gray-500 text-xs mb-1">Ads Watched</p>
-              <p className="text-xl font-black text-purple-400">
-                {selectedUser.dailyAdsWatched || 0}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div>
-              <h4 className="font-bold text-white mb-3 flex items-center space-x-2">
-                <span className="text-yellow-400">🪙</span>
-                <span>Manage Coins</span>
-              </h4>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <select
-                  value={coinAction}
-                  onChange={(e) => setCoinAction(e.target.value as any)}
-                  className="bg-[#0B0E14] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none w-full sm:w-32"
-                >
-                  <option value="add">Add (+)</option>
-                  <option value="remove">Remove (-)</option>
-                </select>
-                <input
-                  type="number"
-                  placeholder="Amount"
-                  value={coinAmount}
-                  onChange={(e) =>
-                    setCoinAmount(parseInt(e.target.value) || "")
-                  }
-                  className="flex-1 bg-[#0B0E14] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none"
-                />
-                <button
-                  onClick={handleUpdateCoins}
-                  className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors"
-                >
-                  Update
-                </button>
-              </div>
-            </div>
-
-            <div className="pt-6 border-t border-white/5">
-              <h4 className="font-bold text-white mb-3 flex items-center space-x-2">
-                <Shield className="w-4 h-4 text-red-400" />
-                <span>Account Actions</span>
-              </h4>
-              <button
-                onClick={handleToggleBan}
-                className={`px-6 py-3 rounded-xl font-bold transition-colors w-full ${selectedUser.status === "banned" ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" : "bg-red-500/20 text-red-400 hover:bg-red-500/30"}`}
-              >
-                {selectedUser.status === "banned" ? "Unban User" : "Ban User"}
-              </button>
-              <button
-                onClick={handleToggleAdmin}
-                className={`px-6 py-3 rounded-xl font-bold transition-colors w-full mt-3 ${selectedUser.role === "admin" ? "bg-orange-500/20 text-orange-400 hover:bg-orange-500/30" : "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"}`}
-              >
-                {selectedUser.role === "admin" ? "Remove Admin" : "Make Admin"}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
   }
+
+  const filtered = users.filter(u => 
+    (u.name || "").toLowerCase().includes(search.toLowerCase()) || 
+    (u.telegramId || "").toString().includes(search)
+  );
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0 md:space-x-4">
-        <h2 className="text-xl font-bold tracking-tight">Users & VIP</h2>
-        <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 w-full md:w-auto">
-          <input
-            type="text"
-            placeholder="Search by name or ID..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-[#151A23] border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500 w-full sm:w-64"
-          />
-          <select
-            value={userStatusFilter}
-            onChange={(e) => setUserStatusFilter(e.target.value as any)}
-            className="bg-[#151A23] border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none w-full sm:w-auto"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active User</option>
-            <option value="inactive">Inactive User</option>
-            <option value="banned">Block User</option>
-          </select>
-        </div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Users Management</h2>
+        <input 
+          type="text" 
+          placeholder="Search by name or ID..." 
+          value={search} 
+          onChange={e => setSearch(e.target.value)}
+          className="bg-[#151A23] border border-white/10 rounded-xl p-2 text-white"
+        />
       </div>
-
-      <div className="flex space-x-2 bg-[#151A23] p-1.5 rounded-xl border border-white/5 w-fit">
-        
-        <button
-          onClick={() => setActiveTab("all")}
-          className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === "all" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
-        >
-          All Users
-        </button>
-<button
-          onClick={() => setActiveTab("normal")}
-          className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === "normal" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
-        >
-          Normal Users
-        </button>
-        <button
-          onClick={() => setActiveTab("vip")}
-          className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === "vip" ? "bg-purple-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
-        >
-          VIP Users
-        </button>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        {filteredUsers.map((u) => (
-          <div
-            key={u.id}
-            className="bg-[#151A23] rounded-2xl border border-white/5 p-4 flex items-center justify-between hover:border-white/10 transition-colors shadow-sm"
-          >
-            <div className="flex items-center space-x-4 overflow-hidden">
-              <div className="w-12 h-12 shrink-0 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-lg border border-blue-500/30 overflow-hidden">
-                {u.photoUrl ? <img src={u.photoUrl} alt={u.username} className="w-full h-full object-cover"/> : (u.username || "U").substring(0, 2).toUpperCase()}
-              </div>
-              <div className="flex flex-col min-w-0">
-                <h3 className="font-bold text-white text-base truncate">
-                  {u.username || "Unknown"} {u.isVip && <span className="ml-1 text-xs px-1.5 py-0.5 bg-yellow-500/20 text-yellow-500 rounded font-black">VIP</span>}
-                </h3>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-4 ml-4">
-
-              <button
-                onClick={() => setSelectedUser(u)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors whitespace-nowrap shadow-md shadow-blue-600/20"
-              >
-                Action
-              </button>
-            </div>
-          </div>
-        ))}
-        {filteredUsers.length === 0 && (
-          <div className="col-span-full py-12 text-center text-gray-500">
-            No {activeTab} users found.
-          </div>
-        )}
+      <div className="bg-[#151A23] border border-white/5 rounded-2xl p-4 overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-white/5 text-gray-400 text-sm">
+              <th className="p-3">User</th>
+              <th className="p-3">Telegram ID</th>
+              <th className="p-3">Balance (VA)</th>
+              <th className="p-3">Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(u => (
+              <tr key={u.id} className="border-b border-white/5">
+                <td className="p-3">
+                  <div className="font-bold text-white">{u.name || "Unknown"}</div>
+                  <div className="text-xs text-gray-500">@{u.username || "no_username"}</div>
+                </td>
+                <td className="p-3 text-gray-300">{u.telegramId || u.id}</td>
+                <td className="p-3 text-yellow-400 font-bold">{u.vaBalance || 0}</td>
+                <td className="p-3">
+                   <select 
+                     value={u.role || "user"} 
+                     onChange={(e) => handleUpdateRole(u.id, e.target.value)}
+                     className="bg-[#0B0E14] border border-white/10 rounded-lg p-1.5 text-xs text-white"
+                   >
+                     <option value="user">User</option>
+                     <option value="vip">VIP</option>
+                     <option value="admin">Admin</option>
+                   </select>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -2830,8 +925,6 @@ function AdminAchievements() {
     </div>
   );
 }
-
-
 function AdminPayments() {
   const [methods, setMethods] = useState<any>({ deposit: [], withdraw: [] });
   const [activeType, setActiveType] = useState<"deposit" | "withdraw" | "requests" | "tasks" | "achievements" | "submissions">("deposit");
@@ -2950,18 +1043,13 @@ function AdminPayments() {
         >
           Achievements
         </button>
-        <button
-          onClick={() => { setActiveType("submissions"); setIsEditing(null); }}
-          className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeType === "submissions" ? "bg-green-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
-        >
-          Task Submissions
-        </button>
+        
       </div>
 
       {activeType === "tasks" && <AdminTasks />}
       {activeType === "achievements" && <AdminAchievements />}
       {activeType === "requests" && <AdminRequests />}
-      {activeType === "submissions" && <AdminSubmissions />}
+      
       
       {(activeType === "deposit" || activeType === "withdraw") && (
         <div className="space-y-4">
@@ -3045,9 +1133,433 @@ function AdminPayments() {
   );
 }
 
+
+function AdminSettings() {
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+  
+  // Data States
+  const [botSettingData, setBotSettingData] = useState<any>({ botUsername: "", botToken: "", botHostingLink: "", miniAppUrl: "", paymentChannelId: "", othersChannelId: "" });
+  const [developerData, setDeveloperData] = useState<any>({ name: "", role: "", whatsapp: "", image: "" });
+  const [supportAgents, setSupportAgents] = useState<any[]>([]);
+  const [vipPlans, setVipPlans] = useState<any[]>([]);
+  const [adsConfig, setAdsConfig] = useState<any>({});
+  const [rewardsConfig, setRewardsConfig] = useState<any>({});
+  const [coinValues, setCoinValues] = useState<any>({});
+  const [adsBoxes, setAdsBoxes] = useState<any[]>([]);
+
+  // Sub-tabs for internal editors
+  const [adminTab, setAdminTab] = useState<"add" | "added">("added");
+  const [editSupportId, setEditSupportId] = useState<string | null>(null);
+  const [editVipId, setEditVipId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const botSnap = await getDoc(doc(db, "settings", "bot_setting"));
+        if (botSnap.exists()) setBotSettingData(botSnap.data());
+
+        const devSnap = await getDoc(doc(db, "settings", "developer_profile"));
+        if (devSnap.exists()) setDeveloperData(devSnap.data());
+
+        const supSnap = await getDoc(doc(db, "settings", "support"));
+        if (supSnap.exists()) setSupportAgents(supSnap.data().agents || []);
+
+        const vipSnap = await getDoc(doc(db, "settings", "vip_plans"));
+        if (vipSnap.exists()) setVipPlans(vipSnap.data().plans || []);
+
+        const adsSnap = await getDoc(doc(db, "settings", "ads_config"));
+        if (adsSnap.exists()) setAdsConfig(adsSnap.data());
+
+        const rewSnap = await getDoc(doc(db, "settings", "rewards_config"));
+        if (rewSnap.exists()) setRewardsConfig(rewSnap.data());
+
+        const cvSnap = await getDoc(doc(db, "settings", "coin_values"));
+        if (cvSnap.exists()) setCoinValues(cvSnap.data());
+        
+        const boxesSnap = await getDoc(doc(db, "settings", "ads_boxes"));
+        if (boxesSnap.exists()) setAdsBoxes(boxesSnap.data().boxes || []);
+      } catch (err) {
+        console.warn("Failed to fetch settings", err);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  const handleEdit = async (key: string) => {
+    setEditing(key);
+    if (!["bot_setting", "developer_profile", "support", "vip_plan", "feature_toggles", "ads_rewards_config", "coin_values"].includes(key)) {
+      const snap = await getDoc(doc(db, "settings", key));
+      setEditContent(snap.exists() ? snap.data().content || "" : "");
+    }
+  };
+
+  const handleSave = async (stayOpen: boolean = false) => {
+    if (editing) {
+      try {
+        if (editing === "bot_setting") {
+          await setDoc(doc(db, "settings", "bot_setting"), botSettingData);
+        } else if (editing === "developer_profile") {
+          await setDoc(doc(db, "settings", "developer_profile"), developerData, { merge: true });
+        } else if (editing === "support") {
+          await setDoc(doc(db, "settings", "support"), { agents: supportAgents.filter((a: any) => a.name && a.name.trim() !== "") }, { merge: true });
+        } else if (editing === "vip_plan") {
+          await setDoc(doc(db, "settings", "vip_plans"), { plans: vipPlans.filter((p: any) => (p.title || p.name || "").trim() !== "") }, { merge: true });
+        } else if (!["feature_toggles", "ads_rewards_config", "coin_values"].includes(editing)) {
+          await setDoc(doc(db, "settings", editing), { content: editContent }, { merge: true });
+        }
+        
+        useUIStore.getState().addToast("Saved successfully!");
+        if (!stayOpen) setEditing(null);
+      } catch (err) {
+        useUIStore.getState().addToast("Failed to save", "error");
+      }
+    }
+  };
+
+  if (editing) {
+    if (editing === "feature_toggles") {
+      return <FeatureTogglesEditor onClose={() => setEditing(null)} onSave={async (vals: any) => {
+        await setDoc(doc(db, "settings", "feature_toggles"), vals, { merge: true });
+        useUIStore.getState().addToast("Saved Toggles!");
+        setEditing(null);
+      }} />;
+    }
+    
+    if (editing === "ads_rewards_config") {
+      return (
+        <AdsRewardsEditor
+          onClose={() => setEditing(null)}
+          onSave={async (adsConf: any, rewConf: any, boxes: any) => {
+            try {
+              await setDoc(doc(db, "settings", "ads_config"), adsConf, { merge: true });
+              await setDoc(doc(db, "settings", "rewards_config"), rewConf, { merge: true });
+              await setDoc(doc(db, "settings", "ads_boxes"), { boxes }, { merge: true });
+              useUIStore.getState().addToast("Saved Ads & Rewards Settings!");
+              setEditing(null);
+            } catch (e) {
+              useUIStore.getState().addToast("Failed to save", "error");
+            }
+          }}
+          initialAdsConfig={adsConfig}
+          initialRewardsConfig={rewardsConfig}
+          initialAdsBoxes={adsBoxes}
+        />
+      );
+    }
+    
+    if (editing === "coin_values") {
+      return (
+        <CoinValuesEditor
+          onClose={() => setEditing(null)}
+          onSave={async (values: any) => {
+            await setDoc(doc(db, "settings", "coin_values"), values);
+            useUIStore.getState().addToast("Saved Coin Values!");
+            setEditing(null);
+          }}
+          initialValues={coinValues}
+        />
+      );
+    }
+
+    if (editing === "bot_setting") {
+      return (
+        <div className="space-y-6 max-w-4xl animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center space-x-4 mb-6">
+            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+            <h2 className="text-xl font-bold">Bot Setting</h2>
+          </div>
+          <div className="bg-[#151A23] rounded-2xl p-6 border border-white/5 shadow-xl space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Bot Username</label>
+              <input type="text" value={botSettingData.botUsername || ""} onChange={(e) => setBotSettingData({...botSettingData, botUsername: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. MySuperBot" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Bot Token</label>
+              <input type="text" value={botSettingData.botToken || ""} onChange={(e) => setBotSettingData({...botSettingData, botToken: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="123456:ABC-DEF..." />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Mini App Link</label>
+              <input type="text" value={botSettingData.miniAppUrl || ""} onChange={(e) => setBotSettingData({...botSettingData, miniAppUrl: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="https://t.me/MyBot/app" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Hosting Link</label>
+              <input type="text" value={botSettingData.botHostingLink || ""} onChange={(e) => setBotSettingData({...botSettingData, botHostingLink: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="https://my-app.com" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Payment Channel ID</label>
+              <input type="text" value={botSettingData.paymentChannelId || ""} onChange={(e) => setBotSettingData({...botSettingData, paymentChannelId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="@my_payment_channel or -100xxxxx" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Adars (Others) Message Channel ID</label>
+              <input type="text" value={botSettingData.othersChannelId || ""} onChange={(e) => setBotSettingData({...botSettingData, othersChannelId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="@my_updates_channel or -100xxxxx" />
+            </div>
+            <button onClick={() => handleSave(false)} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg mt-6">
+              Save Settings
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (editing === "developer_profile") {
+      return (
+        <div className="space-y-6 max-w-4xl animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center space-x-4 mb-6">
+            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+            <h2 className="text-xl font-bold">Developer Profile</h2>
+          </div>
+          <div className="bg-[#151A23] rounded-2xl p-6 border border-white/5 space-y-4">
+             <div><label className="block text-xs font-bold text-gray-400 mb-1">Name</label><input type="text" value={developerData.name || ""} onChange={(e) => setDeveloperData({...developerData, name: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+             <div><label className="block text-xs font-bold text-gray-400 mb-1">Role</label><input type="text" value={developerData.role || ""} onChange={(e) => setDeveloperData({...developerData, role: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+             <div><label className="block text-xs font-bold text-gray-400 mb-1">WhatsApp URL</label><input type="text" value={developerData.whatsapp || ""} onChange={(e) => setDeveloperData({...developerData, whatsapp: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+          </div>
+          <button onClick={() => handleSave(false)} className="w-full mt-6 bg-blue-600 text-white font-bold py-3 rounded-xl">Save Developer Profile</button>
+        </div>
+      );
+    }
+
+    if (editing === "support") {
+      return (
+        <div className="space-y-6 max-w-4xl animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center space-x-3 mb-6">
+            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+            <h2 className="text-xl font-bold">Support Management</h2>
+          </div>
+          <div className="flex space-x-2 bg-[#1C2331] p-1.5 rounded-xl mb-6">
+            <button onClick={() => setAdminTab("added")} className={`flex-1 py-2 rounded-lg font-bold transition-all ${adminTab === "added" ? "bg-blue-600 text-white" : "text-gray-400"}`}>Support Lists</button>
+            <button onClick={() => { setAdminTab("add"); setEditSupportId(null); setSupportAgents([...supportAgents, { id: Date.now().toString(), name: "", role: "", link: "", avatar: "" }]); setEditSupportId(Date.now().toString()); }} className={`flex-1 py-2 rounded-lg font-bold transition-all ${adminTab === "add" ? "bg-blue-600 text-white" : "text-gray-400"}`}>Add New</button>
+          </div>
+          {adminTab === "added" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {supportAgents.filter(a => a.name.trim() !== "").map(agent => (
+                <div key={agent.id} className="bg-[#151A23] border border-white/10 rounded-xl p-4 flex justify-between items-center">
+                  <div><p className="font-bold text-white">{agent.name}</p><p className="text-xs text-gray-400">{agent.role}</p></div>
+                  <div className="flex space-x-2">
+                    <button onClick={() => { setEditSupportId(agent.id); setAdminTab("add"); }} className="p-2 bg-blue-500/20 text-blue-400 rounded-lg"><Edit3 className="w-4 h-4" /></button>
+                    <button onClick={() => { setSupportAgents(supportAgents.filter(a => a.id !== agent.id)); setTimeout(() => handleSave(true), 100); }} className="p-2 bg-red-500/20 text-red-400 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {adminTab === "add" && (
+            <div className="space-y-6">
+              {supportAgents.filter(a => a.id === editSupportId).map(agent => (
+                <div key={agent.id} className="bg-[#151A23] border border-white/10 rounded-xl p-6">
+                  <div className="space-y-4">
+                    <div><label className="text-xs text-gray-400">Name</label><input type="text" value={agent.name} onChange={(e) => setSupportAgents(supportAgents.map(a => a.id === agent.id ? {...a, name: e.target.value} : a))} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+                    <div><label className="text-xs text-gray-400">Role</label><input type="text" value={agent.role} onChange={(e) => setSupportAgents(supportAgents.map(a => a.id === agent.id ? {...a, role: e.target.value} : a))} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+                    <div><label className="text-xs text-gray-400">Link (e.g. https://t.me/user)</label><input type="text" value={agent.link} onChange={(e) => setSupportAgents(supportAgents.map(a => a.id === agent.id ? {...a, link: e.target.value} : a))} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+                  </div>
+                  <div className="flex space-x-4 mt-6">
+                    <button onClick={() => { handleSave(true); setAdminTab("added"); }} className="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl">Save Agent</button>
+                    <button onClick={() => { setSupportAgents(supportAgents.filter(a => a.name.trim() !== "")); setAdminTab("added"); }} className="flex-1 bg-gray-600 text-white font-bold py-3 rounded-xl">Cancel</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    if (editing === "vip_plan") {
+      return (
+        <div className="space-y-6 max-w-4xl animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center space-x-3 mb-6">
+            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+            <h2 className="text-xl font-bold">VIP Plan Management</h2>
+          </div>
+          <div className="flex space-x-2 bg-[#1C2331] p-1.5 rounded-xl mb-6">
+            <button onClick={() => setAdminTab("added")} className={`flex-1 py-2 rounded-lg font-bold transition-all ${adminTab === "added" ? "bg-purple-600 text-white" : "text-gray-400"}`}>VIP Plans</button>
+            <button onClick={() => { setAdminTab("add"); setVipPlans([...vipPlans, { id: Date.now().toString(), title: "", price: "", originalPrice: "", description: "", validDays: 30, discount: "" }]); setEditVipId(Date.now()); }} className={`flex-1 py-2 rounded-lg font-bold transition-all ${adminTab === "add" ? "bg-purple-600 text-white" : "text-gray-400"}`}>Add New</button>
+          </div>
+          {adminTab === "added" && (
+            <div className="grid grid-cols-1 gap-4">
+              {vipPlans.filter(p => p.title.trim() !== "").map(plan => (
+                <div key={plan.id} className="bg-[#151A23] border border-white/10 rounded-xl p-4 flex justify-between items-center">
+                  <div><p className="font-bold text-white">{plan.title}</p><p className="text-xs text-gray-400">Price: {plan.price} BDT</p></div>
+                  <div className="flex space-x-2">
+                    <button onClick={() => { setEditVipId(plan.id); setAdminTab("add"); }} className="p-2 bg-blue-500/20 text-blue-400 rounded-lg"><Edit3 className="w-4 h-4" /></button>
+                    <button onClick={() => { setVipPlans(vipPlans.filter(p => p.id !== plan.id)); setTimeout(() => handleSave(true), 100); }} className="p-2 bg-red-500/20 text-red-400 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {adminTab === "add" && (
+             <div className="space-y-6">
+              {vipPlans.filter(p => p.id === editVipId).map(plan => (
+                <div key={plan.id} className="bg-[#151A23] border border-white/10 rounded-xl p-6">
+                  <div className="space-y-4">
+                    <div><label className="text-xs text-gray-400">Title</label><input type="text" value={plan.title} onChange={(e) => setVipPlans(vipPlans.map(p => p.id === plan.id ? {...p, title: e.target.value} : p))} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+                    <div><label className="text-xs text-gray-400">Price</label><input type="text" value={plan.price} onChange={(e) => setVipPlans(vipPlans.map(p => p.id === plan.id ? {...p, price: e.target.value} : p))} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+                  </div>
+                  <div className="flex space-x-4 mt-6">
+                    <button onClick={() => { handleSave(true); setAdminTab("added"); }} className="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl">Save Plan</button>
+                    <button onClick={() => { setVipPlans(vipPlans.filter(p => p.title.trim() !== "")); setAdminTab("added"); }} className="flex-1 bg-gray-600 text-white font-bold py-3 rounded-xl">Cancel</button>
+                  </div>
+                </div>
+              ))}
+             </div>
+          )}
+        </div>
+      );
+    }
+    
+    // Fallback for rich text editors (Privacy Policy, Terms, etc.)
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+            <h2 className="text-xl font-bold">Edit Content</h2>
+          </div>
+          <button onClick={() => handleSave()} className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg text-white font-medium">Save Content</button>
+        </div>
+        <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="w-full h-96 bg-[#151A23] border border-white/10 rounded-xl p-4 text-white" placeholder="Write content here..." />
+      </div>
+    );
+  }
+
+  // Base list render when not editing
+  return (
+    <div className="space-y-6 max-w-4xl">
+      <h2 className="text-2xl font-bold mb-6 text-white tracking-tight">Admin Settings</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[
+          { title: "Coin Values", desc: "Manage coin values", key: "coin_values", icon: <Coins className="w-5 h-5 text-yellow-400" /> },
+          { title: "Ad & Rewards", desc: "Manage limits & rewards", key: "ads_rewards_config", icon: <Settings className="w-5 h-5 text-blue-400" /> },
+          { title: "Feature Toggles", desc: "Enable/disable features", key: "feature_toggles", icon: <Settings className="w-5 h-5 text-blue-400" /> },
+          { title: "Bot Settings", desc: "Tokens & Configs", key: "bot_setting", icon: <Settings className="w-5 h-5 text-blue-400" /> },
+          { title: "Developer Profile", desc: "App Owner Info", key: "developer_profile", icon: <User className="w-5 h-5 text-purple-400" /> },
+          { title: "Support Management", desc: "Admin Contacts", key: "support", icon: <Settings className="w-5 h-5 text-green-400" /> },
+          { title: "VIP Plans", desc: "Manage Subscriptions", key: "vip_plan", icon: <Settings className="w-5 h-5 text-purple-400" /> },
+          { title: "Privacy Policy", desc: "App Policies", key: "privacy_policy", icon: <FileText className="w-5 h-5 text-gray-400" /> },
+          { title: "Terms & Conditions", desc: "App Terms", key: "terms", icon: <FileText className="w-5 h-5 text-gray-400" /> },
+          { title: "About Us", desc: "Company Info", key: "about", icon: <FileText className="w-5 h-5 text-gray-400" /> },
+        ].map((section) => (
+          <div key={section.key} className="bg-[#151A23] p-5 rounded-2xl border border-white/5 shadow-lg group hover:border-blue-500/30 transition-all">
+            <div className="flex items-center space-x-4 mb-4">
+              <div className="p-3 bg-[#0B0E14] rounded-xl">{section.icon}</div>
+              <div><h3 className="font-bold text-white group-hover:text-blue-400 transition-colors">{section.title}</h3><p className="text-xs text-gray-500">{section.desc}</p></div>
+            </div>
+            <button onClick={() => handleEdit(section.key)} className="w-full py-2.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 rounded-xl transition-colors text-sm font-bold border border-blue-600/20">Edit Content</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AdminVIP() {
+  const [plans, setPlans] = useState<any[]>([]);
+  const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<"added" | "add">("added");
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "vip_plans"), (snap) => {
+      const arr: any[] = [];
+      snap.forEach(d => arr.push({ id: d.id, ...d.data() }));
+      setPlans(arr);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleSave = async () => {
+    if (!editingPlan) return;
+    try {
+      if (editingPlan.id) {
+        await updateDoc(doc(db, "vip_plans", editingPlan.id), editingPlan);
+      } else {
+        await addDoc(collection(db, "vip_plans"), editingPlan);
+      }
+      useUIStore.getState().addToast("VIP Plan Saved!");
+      setEditingPlan(null);
+      setActiveTab("added");
+    } catch (e) {
+      useUIStore.getState().addToast("Error saving", "error");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "vip_plans", id));
+      useUIStore.getState().addToast("VIP Plan Deleted!");
+    } catch (e) {
+      useUIStore.getState().addToast("Error deleting", "error");
+    }
+  }
+
+  return (
+    <div className="space-y-6 max-w-4xl">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">VIP Plans Management</h2>
+      </div>
+
+      <div className="flex space-x-2 bg-[#1C2331] p-1.5 rounded-xl mb-4 w-fit">
+        <button
+          onClick={() => { setActiveTab("added"); setEditingPlan(null); }}
+          className={`px-6 py-2 rounded-lg text-sm font-bold capitalize transition-all ${activeTab === "added" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
+        >
+          Added
+        </button>
+        <button
+          onClick={() => { setActiveTab("add"); setEditingPlan({ name: "", price: 0, durationDays: 30, features: [] }); }}
+          className={`px-6 py-2 rounded-lg text-sm font-bold capitalize transition-all ${activeTab === "add" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
+        >
+          Add
+        </button>
+      </div>
+
+      {activeTab === "add" && editingPlan ? (
+        <div className="bg-[#151A23] rounded-2xl p-6 border border-white/5 space-y-4">
+          <div className="flex justify-between items-center mb-4">
+             <h3 className="font-bold text-lg">{editingPlan.id ? "Edit Plan" : "Create Plan"}</h3>
+          </div>
+          <div className="space-y-4">
+             <div><label className="text-xs text-gray-400">Plan Name</label><input type="text" value={editingPlan.name} onChange={e => setEditingPlan({...editingPlan, name: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+             <div className="grid grid-cols-2 gap-4">
+               <div><label className="text-xs text-gray-400">Price (USDT)</label><input type="number" value={editingPlan.price} onChange={e => setEditingPlan({...editingPlan, price: parseFloat(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+               <div><label className="text-xs text-gray-400">Duration (Days)</label><input type="number" value={editingPlan.durationDays} onChange={e => setEditingPlan({...editingPlan, durationDays: parseInt(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+             </div>
+             <div>
+                <label className="text-xs text-gray-400">Features (comma separated)</label>
+                <textarea value={editingPlan.features?.join(", ")} onChange={e => setEditingPlan({...editingPlan, features: e.target.value.split(",").map((s: string) => s.trim())})} className="w-full h-24 bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" />
+             </div>
+          </div>
+          <div className="flex gap-4 mt-4">
+            <button onClick={handleSave} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl">Save VIP Plan</button>
+            <button onClick={() => { setEditingPlan(null); setActiveTab("added"); }} className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-xl">Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {plans.map(p => (
+            <div key={p.id} className="bg-[#151A23] border border-white/5 rounded-xl p-6">
+               <h3 className="text-xl font-bold text-white mb-2">{p.name}</h3>
+               <p className="text-yellow-400 font-bold mb-4">{p.price} USDT / {p.durationDays} days</p>
+               <ul className="space-y-2 mb-6 text-sm text-gray-400">
+                 {p.features?.map((f: string, i: number) => <li key={i}>• {f}</li>)}
+               </ul>
+               <div className="flex space-x-2">
+                 <button onClick={() => { setEditingPlan(p); setActiveTab("add"); }} className="flex-1 bg-blue-500/20 text-blue-400 py-2 rounded-lg font-bold">Edit</button>
+                 <button onClick={() => handleDelete(p.id)} className="flex-1 bg-red-500/20 text-red-400 py-2 rounded-lg font-bold">Delete</button>
+               </div>
+            </div>
+          ))}
+          {plans.length === 0 && <p className="text-gray-500">No VIP plans found.</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function AdminRequests() {
   const [requests, setRequests] = useState<any[]>([]);
-  const [activeType, setActiveType] = useState<"deposit" | "withdraw">("deposit");
+  const [activeType, setActiveType] = useState<"deposit" | "withdraw" | "submissions">("deposit");
   const [activeStatus, setActiveStatus] = useState<"pending" | "completed" | "rejected">("pending");
 
   useEffect(() => {
@@ -3078,435 +1590,128 @@ function AdminRequests() {
     try {
       await updateDoc(doc(db, "transactions", req.id), { status: newStatus });
       if (req.type === "deposit" && newStatus === "completed" && req.userId) {
-        const userRef = doc(db, "users", req.userId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          await updateDoc(userRef, {
-            vaBalance: (userData.vaBalance || 0) + (req.amount || 0),
-          });
-        }
+        await updateDoc(doc(db, "users", req.userId), {
+          vaBalance: increment(Number(req.amount || 0))
+        });
       }
-      useUIStore.getState().addToast("Status updated!");
-    } catch (e) {
-      console.error(e);
-      useUIStore.getState().addToast("Failed to update status");
+      useUIStore.getState().addToast(`Request ${newStatus}`, "success");
+    } catch (error) {
+      useUIStore.getState().addToast("Update failed", "error");
     }
   };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex space-x-2 bg-[#151A23] p-1.5 rounded-xl border border-white/5 w-fit overflow-x-auto max-w-full no-scrollbar">
-          <button
-            onClick={() => setActiveType("deposit")}
-            className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeType === "deposit" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
-          >
-            Deposits
-          </button>
-          <button
-            onClick={() => setActiveType("withdraw")}
-            className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeType === "withdraw" ? "bg-purple-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
-          >
-            Withdrawals
-          </button>
-          
-        </div>
-        
-          <div className="flex space-x-2 bg-[#151A23] p-1.5 rounded-xl border border-white/5 w-fit">
-            <button
-              onClick={() => setActiveStatus("pending")}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeStatus === "pending" ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" : "text-gray-400 hover:text-white border border-transparent"}`}
-            >
-              Pending
-            </button>
-            <button
-              onClick={() => setActiveStatus("completed")}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeStatus === "completed" ? "bg-green-500/20 text-green-400 border border-green-500/30" : "text-gray-400 hover:text-white border border-transparent"}`}
-            >
-              Approved
-            </button>
-            <button
-              onClick={() => setActiveStatus("rejected")}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeStatus === "rejected" ? "bg-red-500/20 text-red-400 border border-red-500/30" : "text-gray-400 hover:text-white border border-transparent"}`}
-            >
-              Rejected
-            </button>
-          </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredReqs.map((req) => (
-            <div
-              key={req.id}
-              className="bg-[#151A23] rounded-2xl border border-white/5 p-5 shadow-lg relative overflow-hidden flex flex-col"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-bold text-white text-sm">
-                    {req.username || req.userId.substring(0, 8)}
-                  </h3>
-                  <p className="text-xs text-gray-400">
-                    {new Date(req.timestamp).toLocaleString()}
-                  </p>
-                </div>
-                <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${req.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' : req.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                  {req.status || "pending"}
-                </span>
-              </div>
-              <div className="bg-[#0B0E14] rounded-xl p-3 mb-4 flex-1">
-                <p className="text-sm font-bold text-gray-200 mb-1">
-                  Amount: {req.amount} {req.currency || "Coins"}
-                </p>
-                <p className="text-xs text-blue-400 font-bold mb-2">
-                  Method: {req.methodName}
-                </p>
-                <div className="text-xs text-gray-400 break-all">
-                  <span className="text-gray-500">Address/Account:</span> {req.address}
-                </div>
-              </div>
-              {req.status === "pending" && (
-                <div className="flex space-x-2 mt-auto">
-                  <button
-                    onClick={() => handleStatusUpdate(req, "completed")}
-                    className="flex-1 bg-green-600/20 text-green-400 hover:bg-green-600 hover:text-white py-2 rounded-lg font-bold text-xs transition-colors"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => handleStatusUpdate(req, "rejected")}
-                    className="flex-1 bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white py-2 rounded-lg font-bold text-xs transition-colors"
-                  >
-                    Reject
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-    </div>
-  );
-}
-
-
-function CoinValuesEditor({ onClose, onSave, initialValues }: any) {
-  const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
-  const [methods, setMethods] = useState<any>({ deposit: [], withdraw: [] });
-  const [values, setValues] = useState<any>(initialValues || {});
-
-  useEffect(() => {
-    const fetchMethods = async () => {
-      const docRef = doc(db, "settings", "payment_methods");
-      const snap = await getDoc(docRef);
-      if (snap.exists()) {
-        setMethods(snap.data());
-      }
-    };
-    fetchMethods();
-  }, []);
-
-  return (
-    <div className="space-y-6 max-w-4xl">
-      <div className="flex items-center space-x-3 mb-6">
-        <button onClick={onClose} className="text-gray-400 hover:text-white">
-          <X className="w-6 h-6" />
-        </button>
-        <h2 className="text-xl font-bold">Edit Coin Values</h2>
-      </div>
-      <p className="text-sm text-gray-400 mb-6">
-        Set the value of 1 VA coin for different methods. Methods are dynamically pulled from your Payment Methods.
-      </p>
-
-      <div className="flex space-x-2 bg-[#1C2331] p-1.5 rounded-xl mb-6">
-        <button
-          onClick={() => setActiveTab("deposit")}
-          className={`flex-1 py-2 rounded-lg font-bold transition-all ${activeTab === "deposit" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
-        >
-          Deposit Methods
-        </button>
-        <button
-          onClick={() => setActiveTab("withdraw")}
-          className={`flex-1 py-2 rounded-lg font-bold transition-all ${activeTab === "withdraw" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
-        >
-          Withdraw Methods
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {(methods[activeTab] || []).map((method: any) => (
-          <div
-            key={method.id}
-            className="bg-[#151A23] border border-white/5 rounded-xl p-4 flex items-center justify-between"
-          >
-            <span className="font-bold text-white flex items-center space-x-2">
-               {method.photo && <img src={method.photo} className="w-6 h-6 rounded-full object-cover" />}
-               <span>{method.name}</span>
-            </span>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-400">1 VA =</span>
-              <input
-                type="number"
-                step="any"
-                value={values[method.name] || ""}
-                onChange={(e) =>
-                  setValues({
-                    ...values,
-                    [method.name]: parseFloat(e.target.value) || 0,
-                  })
-                }
-                className="bg-[#0B0E14] border border-white/10 rounded-lg px-3 py-1.5 text-white w-24 focus:outline-none"
-              />
-            </div>
-          </div>
-        ))}
-        {(methods[activeTab] || []).length === 0 && (
-           <div className="col-span-full py-8 text-center text-gray-500 border-2 border-dashed border-white/10 rounded-xl">
-             No {activeTab} methods found. Add them in the Resources section first.
-           </div>
-        )}
-      </div>
-
-      <button onClick={() => onSave(values)} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg mt-6">
-        Save Changes
-      </button>
-    </div>
-  );
-}
-
-
-function AdsRewardsEditor({ onClose, onSave, initialAdsConfig, initialRewardsConfig }: any) {
-  const [activeTab, setActiveTab] = useState<"normal" | "vip" | "boxes" | "config">("normal");
-  
-  const [normalConfig, setNormalConfig] = useState({
-    dailyBonusReward: initialRewardsConfig?.dailyBonusReward || 100,
-    dailyAdsLimit: initialAdsConfig?.dailyAdsLimit || 50,
-    adWatchDuration: initialAdsConfig?.adWatchDuration || 15,
-    rewardPerAd: initialAdsConfig?.rewardPerAd || 50,
-    referrerReward: initialRewardsConfig?.referrerReward || 50,
-    referredReward: initialRewardsConfig?.referredReward || 50
-  });
-
-  const [vipConfig, setVipConfig] = useState({
-    dailyBonusReward: initialRewardsConfig?.vipDailyBonusReward || 150,
-    dailyAdsLimit: initialAdsConfig?.vipDailyAdsLimit || 100,
-    adWatchDuration: initialAdsConfig?.vipAdWatchDuration || 10,
-    rewardPerAd: initialAdsConfig?.vipRewardPerAd || 100,
-    referrerReward: initialRewardsConfig?.vipReferrerReward || 100,
-    referredReward: initialRewardsConfig?.vipReferredReward || 100
-  });
-
-  const [monetagConfig, setMonetagConfig] = useState({
-    adsEnabled: initialAdsConfig?.adsEnabled || false,
-    monetagZoneId: initialAdsConfig?.monetagZoneId || "",
-    monetagScriptUrl: initialAdsConfig?.monetagScriptUrl || "",
-    monetagSdk: initialAdsConfig?.monetagSdk || ""
-  });
-
-  const [adsBoxes, setAdsBoxes] = useState<any[]>([]);
-  const [boxTab, setBoxTab] = useState<"add" | "old">("old");
-  const [newBox, setNewBox] = useState({ id: "", title: "", photo: "", target: "normal", url: "", active: true });
-  
-  useEffect(() => {
-    const fetchBoxes = async () => {
-      const snap = await getDoc(doc(db, "settings", "ads_boxes"));
-      if (snap.exists()) {
-        setAdsBoxes(snap.data().boxes || []);
-      }
-    };
-    fetchBoxes();
-  }, []);
-
-  const handleSave = () => {
-    const finalAds = {
-      ...monetagConfig,
-      normalUser: {
-        dailyAdsLimit: normalConfig.dailyAdsLimit,
-        adWatchDuration: normalConfig.adWatchDuration,
-        rewardPerAd: normalConfig.rewardPerAd
-      },
-      vipUser: {
-        dailyAdsLimit: vipConfig.dailyAdsLimit,
-        adWatchDuration: vipConfig.adWatchDuration,
-        rewardPerAd: vipConfig.rewardPerAd
-      }
-    };
-    
-    // Fallback for backwards compatibility
-    finalAds.dailyAdsLimit = normalConfig.dailyAdsLimit;
-    finalAds.adWatchDuration = normalConfig.adWatchDuration;
-    finalAds.rewardPerAd = normalConfig.rewardPerAd;
-
-    const finalRewards = {
-      dailyBonusReward: normalConfig.dailyBonusReward,
-      referrerReward: normalConfig.referrerReward,
-      referredReward: normalConfig.referredReward,
-      vipDailyBonusReward: vipConfig.dailyBonusReward,
-      vipReferrerReward: vipConfig.referrerReward,
-      vipReferredReward: vipConfig.referredReward,
-    };
-    
-    onSave(finalAds, finalRewards, adsBoxes);
-  };
-
-  const handleAddBox = () => {
-    if (!newBox.title || !newBox.url) {
-      useUIStore.getState().addToast("Title and URL required", "error");
-      return;
-    }
-    const id = newBox.id || Date.now().toString();
-    const updatedBoxes = newBox.id 
-      ? adsBoxes.map(b => b.id === id ? newBox : b)
-      : [...adsBoxes, { ...newBox, id }];
-    setAdsBoxes(updatedBoxes);
-    setNewBox({ id: "", title: "", photo: "", target: "normal", url: "", active: true });
-    setBoxTab("old");
-  };
-
-  const ConfigForm = ({ state, setState }: any) => (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-xs font-bold text-gray-400 mb-1">Daily Ads Limit</label>
-        <input type="number" value={state.dailyAdsLimit} onChange={(e) => setState({...state, dailyAdsLimit: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
-      </div>
-      <div>
-        <label className="block text-xs font-bold text-gray-400 mb-1">Ad Watch Duration (seconds)</label>
-        <input type="number" value={state.adWatchDuration} onChange={(e) => setState({...state, adWatchDuration: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
-      </div>
-      <div>
-        <label className="block text-xs font-bold text-gray-400 mb-1">Reward Per Ad (Coins)</label>
-        <input type="number" value={state.rewardPerAd} onChange={(e) => setState({...state, rewardPerAd: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
-      </div>
-      <div className="pt-4 border-t border-white/10">
-        <label className="block text-xs font-bold text-gray-400 mb-1">Daily Bonus Claim (Coins)</label>
-        <input type="number" value={state.dailyBonusReward} onChange={(e) => setState({...state, dailyBonusReward: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
-      </div>
-      <div>
-        <label className="block text-xs font-bold text-gray-400 mb-1">Referrer Reward (Coins)</label>
-        <input type="number" value={state.referrerReward} onChange={(e) => setState({...state, referrerReward: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
-      </div>
-      <div>
-        <label className="block text-xs font-bold text-gray-400 mb-1">Referred User Reward (Coins)</label>
-        <input type="number" value={state.referredReward} onChange={(e) => setState({...state, referredReward: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
-      </div>
-    </div>
-  );
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-      <div className="flex items-center space-x-4 mb-6">
-        <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
-        <h2 className="text-xl font-bold">Ad & Rewards Settings</h2>
-      </div>
-      
-      <div className="flex space-x-2 bg-[#1C2331] p-1.5 rounded-xl mb-6 overflow-x-auto no-scrollbar">
-        <button onClick={() => setActiveTab("normal")} className={`whitespace-nowrap px-4 py-2 rounded-lg font-bold transition-all ${activeTab === "normal" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}>Normal User</button>
-        <button onClick={() => setActiveTab("vip")} className={`whitespace-nowrap px-4 py-2 rounded-lg font-bold transition-all ${activeTab === "vip" ? "bg-purple-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}>Vip User</button>
-        <button onClick={() => setActiveTab("boxes")} className={`whitespace-nowrap px-4 py-2 rounded-lg font-bold transition-all ${activeTab === "boxes" ? "bg-emerald-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}>Ads Box</button>
-        <button onClick={() => setActiveTab("config")} className={`whitespace-nowrap px-4 py-2 rounded-lg font-bold transition-all ${activeTab === "config" ? "bg-red-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}>Conflicts (Monetag)</button>
+      <div className="flex space-x-2 bg-[#1C2331] p-1.5 rounded-xl">
+        <button onClick={() => setActiveType("deposit")} className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all ${activeType === "deposit" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}>Deposits</button>
+        <button onClick={() => setActiveType("withdraw")} className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all ${activeType === "withdraw" ? "bg-purple-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}>Withdrawals</button>
+        <button onClick={() => setActiveType("submissions")} className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all ${activeType === "submissions" ? "bg-green-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}>Task Submissions</button>
       </div>
 
-      <div className="bg-[#151A23] rounded-2xl p-6 border border-white/5 shadow-xl space-y-4">
-        {activeTab === "normal" && <ConfigForm state={normalConfig} setState={setNormalConfig} />}
-        {activeTab === "vip" && <ConfigForm state={vipConfig} setState={setVipConfig} />}
-        
-        {activeTab === "config" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between bg-[#0B0E14] border border-white/10 rounded-lg p-4 mb-4">
-              <div>
-                <span className="text-white block font-medium">Enable Ads System</span>
-                <span className="text-gray-500 text-xs">Turn ad viewing on or off globally.</span>
-              </div>
-              <div
-                className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${monetagConfig.adsEnabled ? "bg-blue-600" : "bg-gray-600"}`}
-                onClick={() => setMonetagConfig({ ...monetagConfig, adsEnabled: !monetagConfig.adsEnabled })}
+      {activeType === "submissions" ? (
+        <AdminSubmissions />
+      ) : (
+        <>
+          <div className="flex space-x-2">
+            {["pending", "completed", "rejected"].map((status) => (
+              <button
+                key={status}
+                onClick={() => setActiveStatus(status as any)}
+                className={`px-4 py-1.5 rounded-full text-xs font-bold capitalize transition-colors ${activeStatus === status ? "bg-white text-[#151A23]" : "bg-white/5 text-gray-400 hover:text-white"}`}
               >
-                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${monetagConfig.adsEnabled ? "left-7" : "left-1"}`} />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Monetag Direct Link URL</label>
-              <input type="text" value={monetagConfig.monetagZoneId} onChange={(e) => setMonetagConfig({...monetagConfig, monetagZoneId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. https://directlink..." />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Monetag Script URL (In-App Ad)</label>
-              <input type="text" value={monetagConfig.monetagScriptUrl} onChange={(e) => setMonetagConfig({...monetagConfig, monetagScriptUrl: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. //thubanoa.com/1?z=12345" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Monetag SDK Function Name</label>
-              <input type="text" value={monetagConfig.monetagSdk} onChange={(e) => setMonetagConfig({...monetagConfig, monetagSdk: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. show_9955574" />
-            </div>
+                {status}
+              </button>
+            ))}
           </div>
-        )}
-
-        {activeTab === "boxes" && (
-          <div className="space-y-4">
-             <div className="flex space-x-2 bg-[#0B0E14] p-1.5 rounded-xl mb-4 w-fit border border-white/5">
-                <button onClick={() => { setBoxTab("add"); setNewBox({ id: "", title: "", photo: "", target: "normal", url: "", active: true }); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${boxTab === "add" ? "bg-emerald-600 text-white" : "text-gray-400 hover:text-white"}`}>Add Box</button>
-                <button onClick={() => setBoxTab("old")} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${boxTab === "old" ? "bg-emerald-600 text-white" : "text-gray-400 hover:text-white"}`}>Old Box</button>
-             </div>
-
-             {boxTab === "add" && (
-               <div className="space-y-4 bg-[#0B0E14] p-4 rounded-xl border border-white/5">
-                 <div>
-                    <label className="block text-xs font-bold text-gray-400 mb-1">Ad Title</label>
-                    <input type="text" value={newBox.title} onChange={e => setNewBox({...newBox, title: e.target.value})} className="w-full bg-[#151A23] border border-white/10 rounded-xl p-3 text-sm text-white" />
-                 </div>
-                 <div>
-                    <label className="block text-xs font-bold text-gray-400 mb-1">Photo URL</label>
-                    <input type="text" value={newBox.photo} onChange={e => setNewBox({...newBox, photo: e.target.value})} className="w-full bg-[#151A23] border border-white/10 rounded-xl p-3 text-sm text-white" />
-                 </div>
-                 <div>
-                    <label className="block text-xs font-bold text-gray-400 mb-1">Action URL</label>
-                    <input type="text" value={newBox.url} onChange={e => setNewBox({...newBox, url: e.target.value})} className="w-full bg-[#151A23] border border-white/10 rounded-xl p-3 text-sm text-white" />
-                 </div>
-                 <div>
-                    <label className="block text-xs font-bold text-gray-400 mb-1">Target Audience</label>
-                    <select value={newBox.target} onChange={e => setNewBox({...newBox, target: e.target.value})} className="w-full bg-[#151A23] border border-white/10 rounded-xl p-3 text-sm text-white">
-                      <option value="normal">Normal Users</option>
-                      <option value="vip">VIP Users</option>
-                      <option value="all">All Users</option>
-                    </select>
-                 </div>
-                 <button onClick={handleAddBox} className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold">Save Box</button>
-               </div>
-             )}
-
-             {boxTab === "old" && (
-                <div className="space-y-3">
-                  {adsBoxes.map(b => (
-                    <div key={b.id} className="bg-[#0B0E14] border border-white/5 p-4 rounded-xl flex items-center justify-between">
-                       <div className="flex items-center space-x-3">
-                         {b.photo && <img src={b.photo} className="w-10 h-10 rounded-lg object-cover" />}
-                         <div>
-                           <h4 className="font-bold text-white text-sm">{b.title}</h4>
-                           <p className="text-xs text-gray-400">{b.target.toUpperCase()} • {b.active ? "Active" : "Inactive"}</p>
-                         </div>
-                       </div>
-                       <div className="flex items-center space-x-2">
-                         <button onClick={() => setAdsBoxes(adsBoxes.map(x => x.id === b.id ? {...x, active: !x.active} : x))} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${b.active ? "bg-red-500/20 text-red-400" : "bg-green-500/20 text-green-400"}`}>{b.active ? "Disable" : "Enable"}</button>
-                         <button onClick={() => { setNewBox(b); setBoxTab("add"); }} className="px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-lg text-xs font-bold">Edit</button>
-                         <button onClick={() => {
-                            useUIStore.getState().showConfirm({
-                              title: "Delete Ad Box",
-                              message: "Are you sure you want to delete this ad box?",
-                              onConfirm: () => setAdsBoxes(adsBoxes.filter(x => x.id !== b.id))
-                            });
-                         }} className="px-3 py-1.5 bg-gray-500/20 text-gray-400 rounded-lg text-xs font-bold"><Trash2 className="w-4 h-4"/></button>
-                       </div>
+          <div className="bg-[#151A23] rounded-2xl border border-white/5 overflow-hidden">
+            {filteredReqs.length === 0 ? (
+              <div className="p-8 text-center text-gray-500 font-medium">No {activeStatus} requests</div>
+            ) : (
+              <div className="divide-y divide-white/5">
+                {filteredReqs.map((req) => (
+                  <div key={req.id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
+                    <div>
+                      <h4 className="font-bold text-white text-sm">{req.method || 'Unknown Method'}</h4>
+                      <p className="text-xs text-gray-400 mt-1">{req.accountDetails || req.address || 'No details'}</p>
+                      <p className="text-[10px] text-gray-500 mt-1">{new Date(req.timestamp || Date.now()).toLocaleString()}</p>
                     </div>
-                  ))}
-                  {adsBoxes.length === 0 && <p className="text-center text-gray-500 text-sm py-4">No ad boxes created.</p>}
-                </div>
-             )}
+                    <div className="text-right">
+                      <div className="font-black text-lg text-white mb-2">{req.amount} VA</div>
+                      {activeStatus === "pending" && (
+                        <div className="flex space-x-2">
+                          <button onClick={() => handleStatusUpdate(req, "completed")} className="px-3 py-1.5 bg-green-500/20 text-green-500 rounded-lg text-xs font-bold hover:bg-green-500 hover:text-white transition-colors">Approve</button>
+                          <button onClick={() => handleStatusUpdate(req, "rejected")} className="px-3 py-1.5 bg-red-500/20 text-red-500 rounded-lg text-xs font-bold hover:bg-red-500 hover:text-white transition-colors">Reject</button>
+                        </div>
+                      )}
+                      {activeStatus !== "pending" && (
+                        <span className={`text-xs font-bold px-2 py-1 rounded ${req.status === 'completed' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+                          {req.status.toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-
-        {activeTab !== "boxes" && (
-          <button onClick={handleSave} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg mt-6">
-            Save Settings
-          </button>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
+}
+
+function CoinValuesEditor({ onClose, onSave, initialValues }: any) {
+  const [activeTab, setActiveTab] = useState("deposit");
+  const [values, setValues] = useState<any>(initialValues || {});
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between">
+        <h2 className="text-xl font-bold">Edit Coin Values</h2>
+        <button onClick={onClose}><X/></button>
+      </div>
+      <div>
+        <label className="block text-sm mb-1">1 VA to TK (bKash/Nagad)</label>
+        <input type="number" step="any" value={values.bKash || 1} onChange={e => setValues({...values, bKash: parseFloat(e.target.value)})} className="w-full bg-[#151A23] border border-white/10 p-2 rounded" />
+      </div>
+      <button onClick={() => onSave(values)} className="w-full py-2 bg-blue-600 rounded">Save</button>
+    </div>
+  );
+}
+
+function AdsRewardsEditor({ onClose, onSave, initialValues }: any) {
+  const [values, setValues] = useState<any>(initialValues || { normal: {}, vip: {} });
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between">
+        <h2 className="text-xl font-bold">Edit Ads/Rewards</h2>
+        <button onClick={onClose}><X/></button>
+      </div>
+      <div>
+        <label className="block text-sm mb-1">Normal Ads Limit</label>
+        <input type="number" value={values.normal?.adsLimit || 10} onChange={e => setValues({...values, normal: {...values.normal, adsLimit: parseInt(e.target.value)}})} className="w-full bg-[#151A23] border border-white/10 p-2 rounded" />
+      </div>
+      <button onClick={() => onSave(values)} className="w-full py-2 bg-blue-600 rounded">Save</button>
+    </div>
+  );
+}
+
+function FeatureTogglesEditor({ onClose, onSave, initialValues }: any) {
+  const [values, setValues] = useState<any>(initialValues || { maintenance: false });
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between">
+        <h2 className="text-xl font-bold">Feature Toggles</h2>
+        <button onClick={onClose}><X/></button>
+      </div>
+      <div className="flex justify-between">
+        <span>Maintenance Mode</span>
+        <input type="checkbox" checked={values.maintenance} onChange={e => setValues({...values, maintenance: e.target.checked})} />
+      </div>
+      <button onClick={() => onSave(values)} className="w-full py-2 bg-blue-600 rounded">Save</button>
+    </div>
+  );
+}
+
+function AdminDeveloper() {
+   return <div>Developer Profile Manager</div>;
 }

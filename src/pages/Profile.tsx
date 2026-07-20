@@ -1,27 +1,6 @@
 import { useUIStore } from '../store/useUIStore';
 import { useAuthStore } from "../store/useAuthStore";
-import {
-  User, Check,
-  ShieldCheck,
-  Mail,
-  LogOut,
-  Settings,
-  HelpCircle,
-  ChevronRight,
-  Copy,
-  Wallet,
-  Activity,
-  Coins,
-  Globe,
-  FileText,
-  Crown,
-  Users,
-  Code,
-  Info,
-  UserCircle,
-  CalendarCheck,
-  Gift
-} from "lucide-react";
+import { User, Check, ShieldCheck, Mail, LogOut, Settings, HelpCircle, ChevronRight, Copy, Wallet, Activity, Coins, Globe, FileText, Crown, Users, Code, Info, UserCircle, CalendarCheck, Gift, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { jsPDF } from "jspdf";
@@ -342,6 +321,13 @@ export default function Profile() {
               color: "text-green-600",
               bg: "bg-gradient-to-br from-green-100 to-green-200",
               path: "/refer",
+            },
+            {
+              label: "Leagues",
+              icon: Trophy,
+              color: "text-blue-600",
+              bg: "bg-gradient-to-br from-blue-100 to-blue-200",
+              path: "/leaderboard",
             },
             {
               label: "Developer",

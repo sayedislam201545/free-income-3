@@ -1,3 +1,4 @@
+import { useFeatureToggles } from "../hooks/useFeatureToggles";
 import { useUIStore } from '../store/useUIStore';
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -10,6 +11,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 export default function Spin() {
+  const featureToggles = useFeatureToggles();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const [isSpinning, setIsSpinning] = useState(false);
@@ -44,6 +46,7 @@ export default function Spin() {
     .join(", ");
 
   const spinWheel = async () => {
+    if (!featureToggles.luckyDraw) { useUIStore.getState().addToast("Lucky Draw is currently disabled by admin", "error"); return; }
     if (isSpinning) return;
     if (spinsToday >= MAX_SPINS) {
         useUIStore.getState().addToast(`You have reached your daily limit of ${MAX_SPINS} spin(s). Come back tomorrow!`);

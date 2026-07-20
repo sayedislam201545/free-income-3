@@ -1,0 +1,315 @@
+function AdminAchievements() {
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [adminTab, setAdminTab] = useState<"add" | "added">("added");
+
+  // Form state
+  const [photo, setPhoto] = useState("");
+  const [name, setName] = useState("");
+  const [coin, setCoin] = useState(0);
+  const [target, setTarget] = useState(0);
+  const [category, setCategory] = useState<"Task" | "Refer" | "Earn" | "Ads">(
+    "Task",
+  );
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "achievements"), (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setAchievements(data);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleSave = async () => {
+    if (!name.trim()) return useUIStore.getState().addToast("Name is required");
+    if (target <= 0) return useUIStore.getState().addToast("Target must be greater than 0");
+    if (coin <= 0) return useUIStore.getState().addToast("Coin reward must be greater than 0");
+
+    const achievementData = {
+      photo: photo || `https://api.dicebear.com/7.x/initials/svg?seed=${name}`,
+      name,
+      coin,
+      target,
+      category,
+      status: "active",
+      updatedAt: Date.now(),
+    };
+
+    try {
+      if (editingId) {
+        await updateDoc(doc(db, "achievements", editingId), achievementData);
+        useUIStore.getState().addToast("Achievement updated!");
+      } else {
+        await addDoc(collection(db, "achievements"), {
+          ...achievementData,
+          createdAt: Date.now(),
+        });
+        useUIStore.getState().addToast("Achievement added!");
+      }
+
+      // Reset form
+      setPhoto("");
+      setName("");
+      setCoin(0);
+      setTarget(0);
+      setCategory("Task");
+      setEditingId(null);
+      setAdminTab("added");
+    } catch (err) {
+      useUIStore.getState().addToast("Error saving achievement");
+      console.error(err);
+    }
+  };
+
+  const handleEdit = (ach: any) => {
+    setPhoto(ach.photo || "");
+    setName(ach.name);
+    setCoin(ach.coin);
+    setTarget(ach.target);
+    setCategory(ach.category);
+    setEditingId(ach.id);
+    setAdminTab("add");
+  };
+
+  const toggleStatus = async (id: string, currentStatus: string) => {
+    await updateDoc(doc(db, "achievements", id), {
+      status: currentStatus === "active" ? "inactive" : "active",
+    });
+  };
+
+  const handleDelete = (id: string) => {
+    const { showConfirm, addToast } = useUIStore.getState();
+    showConfirm({
+      title: "Delete Achievement",
+      message: "Are you sure you want to delete this achievement?",
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, "achievements", id));
+          addToast("Achievement deleted successfully", "success");
+        } catch(e) {
+          addToast("Failed to delete achievement", "error");
+        }
+      }
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center space-x-3 mb-8">
+        <div className="w-12 h-12 bg-indigo-500/20 rounded-2xl flex items-center justify-center border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+          <Trophy className="w-6 h-6 text-indigo-400 drop-shadow-[0_0_10px_rgba(99,102,241,0.8)]" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Achievements Manager
+          </h1>
+          <p className="text-gray-400 text-sm">
+            Manage user badges and milestones
+          </p>
+        </div>
+      </div>
+
+      <div className="flex space-x-4 bg-[#151A23] p-2 rounded-xl border border-white/5">
+        <button
+          onClick={() => {
+            setAdminTab("add");
+            setEditingId(null);
+            setPhoto("");
+            setName("");
+            setCoin(0);
+            setTarget(0);
+            setCategory("Task");
+          }}
+          className={`flex-1 py-2 rounded-lg font-bold transition-all ${adminTab === "add" ? "bg-indigo-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+        >
+          {editingId ? "Edit Achievement" : "Add Achievement"}
+        </button>
+        <button
+          onClick={() => setAdminTab("added")}
+          className={`flex-1 py-2 rounded-lg font-bold transition-all ${adminTab === "added" ? "bg-indigo-600 text-white shadow-md" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
+        >
+          Added Achievements
+        </button>
+      </div>
+
+      {adminTab === "add" && (
+        <div className="bg-[#151A23] rounded-2xl p-6 border border-white/5 shadow-xl">
+          <h2 className="text-lg font-bold text-white mb-6 flex items-center">
+            <Plus className="w-5 h-5 mr-2 text-indigo-400" />
+            {editingId ? "Edit Achievement Details" : "New Achievement Details"}
+          </h2>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">
+                  Achievement Name
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                  placeholder="e.g. Task Master"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">
+                  Icon/Photo URL
+                </label>
+                <input
+                  type="text"
+                  value={photo}
+                  onChange={(e) => setPhoto(e.target.value)}
+                  className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                  placeholder="Leave empty for auto-generated avatar"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">
+                  Reward (Coins)
+                </label>
+                <input
+                  type="number"
+                  value={coin}
+                  onChange={(e) => setCoin(Number(e.target.value))}
+                  className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">
+                  Category
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as any)}
+                  className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                >
+                  <option value="Task">Task (Number of tasks completed)</option>
+                  <option value="Refer">
+                    Refer (Number of friends referred)
+                  </option>
+                  <option value="Earn">Earn (Total VA earned)</option>
+                  <option value="Ads">Ads (Number of ads watched)</option>
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider">
+                  Target Goal
+                </label>
+                <input
+                  type="number"
+                  value={target}
+                  onChange={(e) => setTarget(Number(e.target.value))}
+                  className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-indigo-500 transition-colors"
+                  placeholder="e.g. 50"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  How many {category.toLowerCase()}s does the user need to reach
+                  this achievement?
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSave}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 px-6 py-3.5 rounded-xl text-white font-bold shadow-lg shadow-indigo-600/20 transition-all mt-4"
+            >
+              {editingId ? "Update Achievement" : "Save Achievement"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {adminTab === "added" && (
+        <div className="bg-[#151A23] rounded-2xl border border-white/5 overflow-hidden shadow-xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-gray-400">
+              <thead className="bg-[#1C2331] text-gray-300 uppercase text-xs">
+                <tr>
+                  <th className="px-6 py-4">Badge</th>
+                  <th className="px-6 py-4">Details</th>
+                  <th className="px-6 py-4">Target & Reward</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {achievements.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-6 py-8 text-center text-gray-500"
+                    >
+                      No achievements added yet
+                    </td>
+                  </tr>
+                )}
+                {achievements.map((ach) => (
+                  <tr
+                    key={ach.id}
+                    className="hover:bg-white/[0.02] transition-colors"
+                  >
+                    <td className="px-6 py-4">
+                      <img
+                        src={ach.photo}
+                        alt={ach.name}
+                        className="w-12 h-12 rounded-xl object-cover bg-[#0B0E14] ring-1 ring-white/10"
+                      />
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-white text-base">
+                        {ach.name}
+                      </div>
+                      <div className="text-xs text-indigo-400 mt-0.5">
+                        {ach.category}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col space-y-1">
+                        <span className="text-gray-300 font-medium">
+                          Goal: {ach.target}
+                        </span>
+                        <span className="text-yellow-500 font-bold">
+                          +{ach.coin} VA
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => toggleStatus(ach.id, ach.status)}
+                        className={`px-3 py-1 text-xs font-bold rounded-full border ${
+                          ach.status === "active"
+                            ? "bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20"
+                            : "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"
+                        }`}
+                      >
+                        {ach.status === "active" ? "Active" : "Inactive"}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => handleEdit(ach)}
+                          className="p-2 hover:bg-blue-500/20 text-blue-400 rounded-lg transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(ach.id)}
+                          className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

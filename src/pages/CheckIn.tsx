@@ -1,3 +1,4 @@
+import { useFeatureToggles } from "../hooks/useFeatureToggles";
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
@@ -15,6 +16,7 @@ declare global {
 }
 
 export default function CheckIn() {
+  const featureToggles = useFeatureToggles();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   

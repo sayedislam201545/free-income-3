@@ -1,3 +1,4 @@
+import { useFeatureToggles } from "../hooks/useFeatureToggles";
 import React, { useState, useEffect } from 'react';
 import { 
   createUserWithEmailAndPassword, 
@@ -9,6 +10,7 @@ import { doc, setDoc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { RefreshCw, User, Lock, Mail, Phone, Users, ShieldCheck } from 'lucide-react';
 
 export default function Auth() {
+  const featureToggles = useFeatureToggles();
   const [isLogin, setIsLogin] = useState(true);
   
   // Form fields

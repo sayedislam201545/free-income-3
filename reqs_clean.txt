@@ -1,0 +1,25 @@
+function AdminRequests() {
+  const [requests, setRequests] = useState<any[]>([]);
+  const [activeType, setActiveType] = useState<"deposit" | "withdraw" | "submissions">("deposit");
+  const [activeStatus, setActiveStatus] = useState<"pending" | "completed" | "rejected">("pending");
+
+  useEffect(() => {
+    const reqsRef = collection(db, "transactions");
+    const unsubscribe = onSnapshot(reqsRef, (snapshot) => {
+      if (!snapshot.empty) {
+        const arr: any[] = [];
+        snapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.type === "deposit" || data.type === "withdraw") {
+            arr.push({ id: docSnap.id, ...data });
+          }
+        });
+        arr.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setRequests(arr);
+      } else {
+        setRequests([]);
+      }
+    });
+  }
+  return () => unsubscribe();
+  }

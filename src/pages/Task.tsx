@@ -25,39 +25,38 @@ const CATEGORIES = [
   { id: "joined", label: "Joined Tasks" },
   { id: "visit", label: "Visit Tasks" },
   { id: "registration", label: "App registration" },
-  { id: "vip", label: "VIP User Task" },
 ];
 
 const TaskItem = React.memo(({ task, isCompleted, isPending, activeCategory, userLevel, onGo }: any) => {
   return (
     <div
-      className={`bg-white border-2 border-gray-100 rounded-3xl p-5 flex justify-between items-center shadow-[0_6px_0_rgb(229,231,235)] relative overflow-hidden transition-all ${isCompleted ? "opacity-70" : ""}`}
+      className={`bg-white border-2 border-gray-200 rounded-3xl p-5 flex justify-between items-center shadow-[0_6px_0_rgb(229,231,235)] relative overflow-hidden transition-all ${isCompleted ? "opacity-70" : ""}`}
     >
       <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-[50px] rounded-full pointer-events-none" />
 
       {activeCategory === "vip" &&
         (userLevel === 0 || !userLevel) && (
           <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px] flex items-center justify-center z-10 rounded-3xl">
-            <span className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-5 py-2 rounded-2xl text-xs font-bold shadow-[0_4px_0_rgb(88,28,135)] border-b border-purple-800">
+            <span className="bg-gradient-to-r from-purple-500 to-indigo-600 text-gray-900 px-5 py-2 rounded-2xl text-xs font-bold shadow-[0_4px_0_rgb(88,28,135)] border-b border-purple-800">
               VIP Only Task
             </span>
           </div>
         )}
       <div className="flex items-center space-x-4 relative z-10">
-        <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-white shrink-0">
+        <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-gray-200 shrink-0">
           <span className="drop-shadow-sm">
             {task.icon === "message" ? "💬" : "📋"}
           </span>
         </div>
         <div className="flex-1 min-w-0 pr-4">
-          <h3 className="font-bold text-[15px] text-[#2C334A] leading-tight truncate">
+          <h3 className="font-bold text-[15px] text-gray-900 leading-tight truncate">
             {task.title || "Untitled Task"}
           </h3>
-          <p className="text-[11px] text-gray-500 mt-1 max-w-[170px] line-clamp-2 leading-snug">
+          <p className="text-[11px] text-gray-600 mt-1 max-w-[170px] line-clamp-2 leading-snug">
             {task.description}
           </p>
           <div className="inline-flex items-center mt-2 bg-amber-100 px-2 py-1 rounded-lg border border-amber-200">
-            <span className="text-amber-600 font-extrabold text-[11px] flex items-center">
+            <span className="text-yellow-400 font-extrabold text-[11px] flex items-center">
               +{task.reward || 50}{" "}
               <span className="ml-1 opacity-80">Coins</span>
             </span>
@@ -86,7 +85,7 @@ const TaskItem = React.memo(({ task, isCompleted, isPending, activeCategory, use
       ) : (
         <button
           onClick={() => onGo(task)}
-          className="bg-gradient-to-b from-blue-500 to-blue-700 text-white font-bold text-xs px-6 py-3 rounded-2xl shadow-[0_4px_0_rgb(30,58,138)] border-b border-blue-800 active:translate-y-[4px] active:shadow-[0_0px_0_rgb(30,58,138)] transition-all z-10 relative shrink-0"
+          className="bg-gradient-to-b from-blue-500 to-blue-700 text-gray-900 font-bold text-xs px-6 py-3 rounded-2xl shadow-[0_4px_0_rgb(30,58,138)] border-b border-blue-800 active:translate-y-[4px] active:shadow-[0_0px_0_rgb(30,58,138)] transition-all z-10 relative shrink-0"
         >
           GO
         </button>
@@ -195,7 +194,7 @@ export default function Task() {
       : 0;
   const pendingCount = totalTasksCount - completedCount;
 
-  const isVipUser = user?.isVip && user?.vipExpiry && user?.vipExpiry > Date.now();
+  const isVipUser = user?.isVip === true;
   const visibleCategories = isVipUser 
      ? CATEGORIES 
      : CATEGORIES.filter(cat => cat.id !== "vip");
@@ -232,8 +231,8 @@ export default function Task() {
             onClick={() => setActiveCategory(cat.id)}
             className={`whitespace-nowrap px-5 py-3 rounded-2xl text-xs font-bold transition-all transform active:translate-y-1 ${
               activeCategory === cat.id
-                ? "bg-gradient-to-b from-blue-400 to-blue-600 text-white shadow-[0_4px_0_rgb(30,58,138)] border-b border-blue-700"
-                : "bg-white text-gray-600 border-2 border-gray-100 shadow-[0_4px_0_rgb(229,231,235)] hover:bg-gray-50"
+                ? "bg-gradient-to-b from-blue-600 to-blue-800 text-gray-900 shadow-[0_4px_0_rgb(30,58,138)] border-b border-blue-900"
+                : "bg-white text-gray-700 border-2 border-gray-100 shadow-[0_4px_0_rgb(229,231,235)] hover:bg-gray-50"
             }`}
           >
             {cat.label}

@@ -1,3 +1,4 @@
+import { useFeatureToggles } from "../hooks/useFeatureToggles";
 import { useUIStore } from '../store/useUIStore';
 import { useState, useEffect } from "react";
 import { Send, Wallet as WalletIcon, ArrowDownToLine, ChevronLeft, Copy, CheckCircle2 } from "lucide-react";
@@ -7,6 +8,7 @@ import { db } from "../lib/firebase";
 import AnimatedCounter from "../components/AnimatedCounter";
 
 export default function Wallet() {
+  const featureToggles = useFeatureToggles();
   const [tab, setTab] = useState<'deposit' | 'withdraw' | 'transfer'>('deposit');
   const user = useAuthStore((state) => state.user);
   

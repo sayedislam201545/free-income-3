@@ -1,0 +1,292 @@
+47-export default function AdminLayout() {
+48-  const [sidebarOpen, setSidebarOpen] = useState(false);
+49-
+50-  
+51-
+52:  return (
+--
+184-    const unsubSub = onSnapshot(query(subRef, where("status", "==", "pending")), (snap) => {
+185-      setStats((prev) => ({ ...prev, pendingSubmissions: snap.docs.length }));
+186-    });
+187-
+188-  }
+189:  return () => {
+190-      unsubUsers();
+191-      unsubSub();
+192-    };
+193-  }, []);
+194-
+195:  return (
+--
+246-      (error) => {
+247-        console.warn("Tasks admin fetch error:", error);
+248-      },
+249-    );
+250-  }
+251:  return () => unsubscribe();
+--
+322-        }
+323-      }
+324-    });
+325-  };
+326-
+327:  return (
+--
+696-        setEditing(null);
+697-      }} />;
+698-    }
+699-    if (editing === "ads_rewards_config") {
+700-    }
+701:  return (
+--
+717-        />
+718-      );
+719-    }
+720-    if (editing === "coin_values") {
+721-    }
+722:  return (
+--
+731-        />
+732-      );
+733-    }
+734-    if (editing === "bot_setting") {
+735-    }
+736:  return (
+--
+786-    }
+787-
+788-
+789-    if (editing === "ads_rewards_config") {
+790-    }
+791:  return (
+--
+870-      );
+871-    }
+872-
+873-    if (editing === "developer_profile") {
+874-    }
+875:  return (
+--
+981-      );
+982-    }
+983-
+984-    if (editing === "support") {
+985-    }
+986:  return (
+--
+1114-                .map((agent) => {
+1115-                  const index = supportAgents.findIndex(
+1116-                    (a) => a.id === agent.id,
+1117-                  );
+1118-                }
+1119:  return (
+--
+1260-        </div>
+1261-      );
+1262-    }
+1263-    if (editing === "vip_plan") {
+1264-    }
+1265:  return (
+--
+1402-              {vipPlans
+1403-                .filter((p) => p.id === editVipId)
+1404-                .map((plan) => {
+1405-                  const index = vipPlans.findIndex((p) => p.id === plan.id);
+1406-                }
+1407:  return (
+--
+1695-          )}
+1696-        </div>
+1697-      );
+1698-    }
+1699-  }
+1700:  return (
+--
+1722-        </button>
+1723-      </div>
+1724-    );
+1725-  }
+1726-
+1727:  return (
+--
+1828-      } else {
+1829-        setSubmissions([]);
+1830-      }
+1831-    });
+1832-  }
+1833:  return () => unsubscribe();
+--
+1858-      console.error(e);
+1859-      useUIStore.getState().addToast("Error updating status.");
+1860-    }
+1861-  };
+1862-
+1863:  return (
+--
+1913-      );
+1914-    }
+1915-
+1916-    if (editing === "bot_setting") {
+1917-    }
+1918:  return (
+--
+1968-    }
+1969-
+1970-
+1971-    if (editing === "ads_rewards_config") {
+1972-    }
+1973:  return (
+--
+2052-      );
+2053-    }
+2054-
+2055-    if (editing === "developer_profile") {
+2056-    }
+2057:  return (
+--
+2163-      );
+2164-    }
+2165-
+2166-    if (editing === "support") {
+2167-    }
+2168:  return (
+--
+2296-                .map((agent) => {
+2297-                  const index = supportAgents.findIndex(
+2298-                    (a) => a.id === agent.id,
+2299-                  );
+2300-                }
+2301:  return (
+--
+2442-        </div>
+2443-      );
+2444-    }
+2445-    if (editing === "vip_plan") {
+2446-    }
+2447:  return (
+--
+2584-              {vipPlans
+2585-                .filter((p) => p.id === editVipId)
+2586-                .map((plan) => {
+2587-                  const index = vipPlans.findIndex((p) => p.id === plan.id);
+2588-                }
+2589:  return (
+--
+2877-          )}
+2878-        </div>
+2879-      );
+2880-    }
+2881-  }
+2882:  return (
+--
+2904-        </button>
+2905-      </div>
+2906-    );
+2907-  }
+2908-
+2909:  return (
+--
+3010-      } else {
+3011-        setSubmissions([]);
+3012-      }
+3013-    });
+3014-  }
+3015:  return () => unsubscribe();
+--
+3040-      console.error(e);
+3041-      useUIStore.getState().addToast("Error updating status.");
+3042-    }
+3043-  };
+3044-
+3045:  return (
+--
+3110-      } else {
+3111-        setSubmissions([]);
+3112-      }
+3113-    });
+3114-  }
+3115:  return () => unsubscribe();
+--
+3140-      console.error(e);
+3141-      useUIStore.getState().addToast("Error updating status.");
+3142-    }
+3143-  };
+3144-
+3145:  return (
+--
+3267-        u.push({ id: doc.id, ...doc.data() });
+3268-      });
+3269-      setUsers(u);
+3270-    });
+3271-  }
+3272:  return () => unsub();
+--
+3358-    }
+3359-  };
+3360-
+3361-  if (selectedUser) {
+3362-  }
+3363:  return (
+--
+3481-        </div>
+3482-      </div>
+3483-    );
+3484-  }
+3485-
+3486:  return (
+--
+3586-    const unsub = onSnapshot(collection(db, "achievements"), (snapshot) => {
+3587-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+3588-      setAchievements(data);
+3589-    });
+3590-  }
+3591:  return () => unsub();
+--
+3662-        }
+3663-      }
+3664-    });
+3665-  };
+3666-
+3667:  return (
+--
+3965-     setCurrencyType(m.isCrypto ? "Crypto" : "Tk");
+3966-     setActiveType(type as any);
+3967-     setSubTab("add");
+3968-  };
+3969-
+3970:  return (
+--
+4115-      } else {
+4116-        setRequests([]);
+4117-      }
+4118-    });
+4119-  }
+4120:  return () => unsubscribe();
+--
+4136-    } catch (error) {
+4137-      useUIStore.getState().addToast("Update failed", "error");
+4138-    }
+4139-  };
+4140-
+4141:  return (
+--
+4212-      }
+4213-    };
+4214-    fetchMethods();
+4215-  }, []);
+4216-
+4217:  return (
+--
+4398-        <input type="number" value={state.referredReward} onChange={(e) => setState({...state, referredReward: Number(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
+4399-      </div>
+4400-    </div>
+4401-  );
+4402-
+4403:  return (
+--
+4536-    fetch();
+4537-  }, []);
+4538-
+4539-  const handleToggle = (key: string) => setToggles({...toggles, [key]: !toggles[key as keyof typeof toggles]});
+4540-
+4541:  return (

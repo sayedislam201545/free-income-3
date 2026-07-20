@@ -25,6 +25,7 @@ interface User {
   currentAdCount?: number;
   adCountdownUntil?: number;
   completedTasks?: number;
+  currentStreak?: number;
   watchedAds?: number;
   adCampaignsWatched?: Record<string, { dailyWatched: number, lastDate: string }>;
   claimedAchievements?: string[];

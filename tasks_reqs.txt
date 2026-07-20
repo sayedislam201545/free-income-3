@@ -1,0 +1,33 @@
+==AdminTasks==
+function AdminTasks() {
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [adminTab, setAdminTab] = useState<"add" | "added">("added");
+  const [newTask, setNewTask] = useState({
+    title: "",
+    reward: 100,
+    description: "",
+    category: "joined",
+    youtubeUrl: "",
+    telegraphUrl: "",
+    targetUrl: "",
+    active: true,
+  });
+
+  useEffect(() => {
+    const tasksRef = collection(db, "tasks");
+    const unsubscribe = onSnapshot(
+      tasksRef,
+      (snapshot) => {
+        if 
+==AdminRequests==
+function AdminRequests() {
+  const [requests, setRequests] = useState<any[]>([]);
+  const [activeType, setActiveType] = useState<"deposit" | "withdraw" | "submissions">("deposit");
+  const [activeStatus, setActiveStatus] = useState<"pending" | "completed" | "rejected">("pending");
+
+  useEffect(() => {
+    const reqsRef = collection(db, "transactions");
+    const unsubscribe = onSnapshot(reqsRef, (snapshot) => {
+      if (!snapshot.empty) {
+        const arr: any[] = [];
+        snapshot.docs.for

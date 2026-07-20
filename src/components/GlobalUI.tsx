@@ -47,17 +47,17 @@ export default function GlobalUI() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#151A23] border border-white/10 rounded-2xl p-6 w-full max-w-sm relative z-10 shadow-2xl"
+              className="bg-white border border-gray-300 rounded-2xl p-6 w-full max-w-sm relative z-10 shadow-2xl"
             >
-              <h3 className="text-xl font-bold text-white mb-2">{confirmDialog.title}</h3>
-              <p className="text-gray-400 text-sm mb-6">{confirmDialog.message}</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">{confirmDialog.title}</h3>
+              <p className="text-gray-600 text-sm mb-6">{confirmDialog.message}</p>
               <div className="flex space-x-3">
                 <button
                   onClick={() => {
                     confirmDialog.onCancel?.();
                     hideConfirm();
                   }}
-                  className="flex-1 py-3 rounded-xl font-bold bg-white/5 hover:bg-white/10 text-white transition-colors"
+                  className="flex-1 py-3 rounded-xl font-bold bg-gray-100 hover:bg-gray-200 text-gray-900 transition-colors"
                 >
                   Cancel
                 </button>

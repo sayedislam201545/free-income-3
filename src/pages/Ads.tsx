@@ -25,7 +25,7 @@ export default function Ads() {
   const [adsBoxes, setAdsBoxes] = useState<any[]>([]);
   const [adsConfig, setAdsConfig] = useState<any>({ dailyAdsLimit: 50 });
 
-  const isVipUser = user?.isVip && user?.vipExpiry && user?.vipExpiry > Date.now();
+  const isVipUser = user?.isVip === true;
 
   useEffect(() => {
     const fetchBoxesAndConfig = async () => {

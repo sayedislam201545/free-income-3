@@ -30,7 +30,12 @@
       };
       
       window.addEventListener('error', function(e) {
-          if ((e.message && (e.message.includes('CloudStorage is not supported') || e.message.includes('WebAppMethodUnsupported'))) || (e.error && e.error.message && e.error.message.includes('WebAppMethodUnsupported'))) {
+          if (e.message === 'Script error.') {
+              e.preventDefault();
+              e.stopImmediatePropagation();
+              return true;
+          }
+          if ((e.message && (e.message.includes('CloudStorage is not supported') || e.message.includes('WebAppMethodUnsupported') || e.message === 'Script error.')) || (e.error && e.error.message && e.error.message.includes('WebAppMethodUnsupported'))) {
               e.preventDefault();
               e.stopImmediatePropagation();
           }
@@ -67,6 +72,13 @@
     </script>
     
       <script src='//libtl.com/sdk.js' data-zone='9955574' data-sdk='show_9955574'></script>
+      <div id="google_translate_element" style="display:none;"></div>
+    <script type="text/javascript">
+      function googleTranslateElementInit() {
+        new google.translate.TranslateElement({pageLanguage: 'en', autoDisplay: false}, 'google_translate_element');
+      }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
   </head>
   <body>
     <div id="root"></div>

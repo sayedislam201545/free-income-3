@@ -1,0 +1,11 @@
+const fs = require('fs');
+let code = fs.readFileSync('src/main.tsx', 'utf8');
+code = `
+window.addEventListener('error', (e) => {
+  document.body.innerHTML += '<div style="color:red; background:black; padding:20px; z-index:999999; position:fixed; top:0; left:0; width:100%;">' + e.error.message + '<br/>' + e.error.stack + '</div>';
+});
+window.addEventListener('unhandledrejection', (e) => {
+  document.body.innerHTML += '<div style="color:red; background:black; padding:20px; z-index:999999; position:fixed; top:0; left:0; width:100%;">Unhandled Promise Rejection: ' + e.reason + '</div>';
+});
+` + code;
+fs.writeFileSync('src/main.tsx', code);

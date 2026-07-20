@@ -6,6 +6,7 @@ import React from 'react';
 
 import { useEffect, useRef } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useAuthStore } from "./store/useAuthStore";
 import {
   collection,
@@ -171,7 +172,7 @@ export default function App() {
     );
   }
 
-  if (!user) {
+  if (!user && !window.location.pathname.startsWith("/admin")) {
     return <Auth />;
   }
 
@@ -209,7 +210,7 @@ export default function App() {
       <div id="google_translate_element" style={{ display: "none" }}></div>
       <GlobalUI />
       <BrowserRouter>
-        <Routes>
+        <ErrorBoundary><Routes>
           <Route path="/admin/*" element={<RequireAdmin><AdminLayout /></RequireAdmin>} />
 
           <Route element={<AppLayout />}>
@@ -241,7 +242,7 @@ export default function App() {
           <Route path="/fund-details" element={<PageViewer />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        </Routes></ErrorBoundary>
       </BrowserRouter>
     </>
   );

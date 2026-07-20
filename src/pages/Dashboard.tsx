@@ -27,7 +27,54 @@ export default function Dashboard() {
   const [showBonusModal, setShowBonusModal] = useState(false);
   const [isWatchingBonusAd, setIsWatchingBonusAd] = useState(false);
   const [bonusAdTimer, setBonusAdTimer] = useState(15);
-  const [bonusAdReward] = useState(30);
+    const [realStats, setRealStats] = useState({
+    totalEarned: 0,
+    totalTasks: 0,
+    totalReferrals: 0,
+    dailyStreak: 0,
+    completed: 0,
+    globalRank: 0,
+    activeTasks: 0
+  });
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchRealData = async () => {
+      try {
+        const { collection, query, where, getDocs, getCountFromServer, orderBy } = await import("firebase/firestore");
+        
+        // Active Tasks (pending submissions)
+        const subQ = query(collection(db, "task_submissions"), where("userId", "==", user.uid), where("status", "==", "pending"));
+        const subSnap = await getCountFromServer(subQ);
+        const activeTasks = subSnap.data().count;
+
+        // Completed Tasks (approved submissions)
+        const compQ = query(collection(db, "task_submissions"), where("userId", "==", user.uid), where("status", "==", "approved"));
+        const compSnap = await getCountFromServer(compQ);
+        const completed = compSnap.data().count;
+
+        // Global Rank (users with more balance)
+        const rankQ = query(collection(db, "users"), where("vaBalance", ">", user.vaBalance || 0));
+        const rankSnap = await getCountFromServer(rankQ);
+        const globalRank = rankSnap.data().count + 1;
+
+        setRealStats({
+          totalEarned: user.totalEarned || 0,
+          totalTasks: activeTasks + completed,
+          totalReferrals: user.referralCount || 0,
+          dailyStreak: user.currentStreak || 0,
+          completed: completed,
+          globalRank: globalRank,
+          activeTasks: activeTasks
+        });
+      } catch (e) {
+        console.warn("Failed to fetch real stats", e);
+      }
+    };
+    fetchRealData();
+  }, [user]);
+
+const [bonusAdReward] = useState(30);
   
   const slides = [
     {
@@ -201,8 +248,8 @@ export default function Dashboard() {
       id: 1,
       icon: "💰",
       title: "Total Earned",
-      value: (user?.totalEarned || 0).toLocaleString(),
-      rawValue: user?.totalEarned || 0,
+      value: realStats.totalEarned.toLocaleString(),
+      rawValue: realStats.totalEarned,
       sub: "Coins",
       color: "text-indigo-600",
       bg: "to-indigo-50",
@@ -212,8 +259,8 @@ export default function Dashboard() {
       id: 2,
       icon: "📋",
       title: "Total Tasks",
-      value: ((user as any)?.totalTasks || 0).toLocaleString(),
-      rawValue: (user as any)?.totalTasks || 0,
+      value: realStats.totalTasks.toLocaleString(),
+      rawValue: realStats.totalTasks,
       sub: "Tasks",
       color: "text-blue-600",
       bg: "to-blue-50",
@@ -223,8 +270,8 @@ export default function Dashboard() {
       id: 3,
       icon: "👥",
       title: "Total Referrals",
-      value: (user?.referralCount || 0).toLocaleString(),
-      rawValue: user?.referralCount || 0,
+      value: realStats.totalReferrals.toLocaleString(),
+      rawValue: realStats.totalReferrals,
       sub: "Users",
       color: "text-emerald-500",
       bg: "to-emerald-50",
@@ -256,8 +303,8 @@ export default function Dashboard() {
       id: 6,
       icon: "🔥",
       title: "Daily Streak",
-      value: ((user as any)?.currentStreak || 0).toLocaleString(),
-      rawValue: (user as any)?.currentStreak || 0,
+      value: realStats.dailyStreak.toLocaleString(),
+      rawValue: realStats.dailyStreak,
       sub: "Days",
       color: "text-orange-500",
       bg: "to-orange-50",
@@ -267,8 +314,8 @@ export default function Dashboard() {
       id: 7,
       icon: "⏳",
       title: "Pending Tasks",
-      value: ((user as any)?.pendingTasks || 0).toLocaleString(),
-      rawValue: (user as any)?.pendingTasks || 0,
+      value: realStats.activeTasks.toLocaleString(),
+      rawValue: realStats.activeTasks,
       sub: "Tasks",
       color: "text-blue-600",
       bg: "to-blue-50",
@@ -333,7 +380,7 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col pb-6">
       {/* Hero Slider */}
-      <div className="relative w-full overflow-hidden rounded-[24px] shadow-[0_12px_30px_rgba(200,210,240,0.4)] border border-white h-[180px] mb-4 bg-white block">
+      <div className="relative w-full overflow-hidden rounded-[24px] shadow-[0_12px_30px_rgba(200,210,240,0.4)] border border-gray-300 h-[180px] mb-4 bg-white block">
         <AnimatePresence mode="wait">
           <motion.div
             drag="x"
@@ -367,7 +414,7 @@ export default function Dashboard() {
               </p>
               <button
                 onClick={() => handleSlideClick(slides[currentSlide].path)}
-                className={`${slides[currentSlide].btnColor} text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center space-x-1 shadow-lg shadow-blue-500/20 transform transition active:scale-95`}
+                className={`${slides[currentSlide].btnColor} text-gray-900 text-xs font-bold px-4 py-2 rounded-lg flex items-center space-x-1 shadow-lg shadow-blue-500/20 transform transition active:scale-95`}
               >
                 <span>{slides[currentSlide].btn}</span>
                 <ArrowRight className="w-3 h-3 stroke-[3]" />
@@ -392,6 +439,25 @@ export default function Dashboard() {
         ))}
       </div>
 
+      
+      {/* Quick Actions (Main Menu) */}
+      <div className="flex justify-between items-center space-x-3 mb-6">
+        <button 
+          onClick={() => navigate('/tasks')}
+          className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3.5 rounded-2xl shadow-lg flex items-center justify-center space-x-2 active:scale-95 transition-all"
+        >
+          <span className="text-xl">📋</span>
+          <span>Tasks</span>
+        </button>
+        <button 
+          onClick={() => navigate('/ads')}
+          className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-bold py-3.5 rounded-2xl shadow-lg flex items-center justify-center space-x-2 active:scale-95 transition-all"
+        >
+          <span className="text-xl">📺</span>
+          <span>Ads</span>
+        </button>
+      </div>
+
       {/* Content Grid */}
       <div className="grid grid-cols-3 gap-3">
         {stats.map((stat) => (
@@ -399,10 +465,10 @@ export default function Dashboard() {
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.96 }}
             key={stat.id}
-            className="bg-gradient-to-b from-white to-gray-50/90 rounded-[24px] border border-white/60 shadow-[0_8px_16px_rgba(0,0,0,0.06),inset_0_4px_8px_rgba(255,255,255,0.8),0_2px_4px_rgba(0,0,0,0.04)] p-3 flex flex-col items-center relative overflow-hidden transition-all group"
+            className="bg-white rounded-[24px] border border-gray-200 shadow-xl p-3 flex flex-col items-center relative overflow-hidden transition-all group"
           >
             {/* Glossy reflection */}
-            <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-t-[24px]" />
+            <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-[#1C2331]/5 to-transparent pointer-events-none rounded-t-[24px]" />
             
             <div
               className={`absolute inset-0 bg-gradient-to-b from-white/20 ${stat.bg} pointer-events-none opacity-30 group-hover:opacity-50 transition-opacity duration-300`}
@@ -414,7 +480,7 @@ export default function Dashboard() {
               <span className="drop-shadow-sm">{stat.icon}</span>
             </div>
             
-            <div className="text-[10px] font-extrabold text-[#2C334A] text-center leading-[1.1] min-h-[24px] flex items-center justify-center -mx-1 z-10 tracking-wide opacity-90">
+            <div className="text-[10px] font-extrabold text-gray-900 text-center leading-[1.1] min-h-[24px] flex items-center justify-center -mx-1 z-10 tracking-wide opacity-90">
               {stat.title}
             </div>
             
@@ -467,14 +533,14 @@ export default function Dashboard() {
                 {isTracking ? (
                 <button
                   onClick={checkCompletion}
-                  className="w-full py-4 bg-gradient-to-r from-blue-500 to-blue-400 text-white rounded-2xl font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95"
+                  className="w-full py-4 bg-gradient-to-r from-blue-500 to-blue-400 text-gray-900 rounded-2xl font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95"
                 >
                   Verify Ad
                 </button>
               ) : (
                 <button
                   onClick={startBonusAd}
-                  className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-2xl font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95"
+                  className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-gray-900 rounded-2xl font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95"
                 >
                   Claim Reward
                 </button>
