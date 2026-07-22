@@ -31,37 +31,36 @@ export default function AdDetail() {
   });
 
   const user = useAuthStore((state) => state.user);
-  const isVipUser = user?.isVip === true;
+  const isVipUser = user?.isVip && user?.vipExpiry && user?.vipExpiry > Date.now();
 
   useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const snap = await getDoc(doc(db, "settings", "ads_config"));
-        if (snap.exists()) {
-          const data = snap.data();
-          const userRef = auth.currentUser ? doc(db, "users", auth.currentUser.uid) : null;
-          let userSnap = null;
-          if (userRef) userSnap = await getDoc(userRef);
-          
-          let isVip = false;
-          if (userSnap && userSnap.exists()) {
-             const uData = userSnap.data();
-             if (uData.isVip === true) {
-                isVip = true;
-             }
+    import("firebase/firestore").then(m => {
+       const unsubConfig = m.onSnapshot(m.doc(db, "settings", "ads_rewards_config"), (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            const specificConfig = isVipUser ? data.vip : data.normal;
+            const settings = data.settings || {};
+            if (specificConfig) {
+               setAdsConfig({ 
+                   ...settings, 
+                   ...specificConfig, 
+                   adWatchDuration: settings.adsSecond !== undefined ? settings.adsSecond : 15,
+                   dailyAdsLimit: specificConfig.adsLimit !== undefined ? specificConfig.adsLimit : 50,
+                   rewardPerAd: specificConfig.reward !== undefined ? specificConfig.reward : 50
+               });
+            } else {
+               setAdsConfig({ 
+                   ...settings, 
+                   adWatchDuration: settings.adsSecond !== undefined ? settings.adsSecond : 15,
+                   dailyAdsLimit: 50,
+                   rewardPerAd: 50
+               });
+            }
           }
-          
-          const specificConfig = isVip ? data.vipUser : data.normalUser;
-          if (specificConfig) {
-             setAdsConfig({ ...adsConfig, ...data, ...specificConfig });
-          } else {
-             setAdsConfig({ ...adsConfig, ...data });
-          }
-        }
-      } catch (e) {}
-    };
-    fetchConfig();
-  }, []);
+       });
+       return () => unsubConfig();
+    });
+  }, [isVipUser]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -102,7 +101,7 @@ export default function AdDetail() {
 
   const handleWatchAd = () => {
     playPremiumClick();
-    if (dailyWatched >= (adsConfig.dailyAdsLimit || 50)) {
+    if (dailyWatched >= (adsConfig.dailyAdsLimit !== undefined ? adsConfig.dailyAdsLimit : 50)) {
       useUIStore.getState().addToast("Daily limit reached for this campaign!");
       return;
     }
@@ -121,7 +120,7 @@ export default function AdDetail() {
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
         const userData = userSnap.data();
-        const addedCoins = adsConfig.rewardPerAd || 50;
+        const addedCoins = adsConfig.rewardPerAd !== undefined ? adsConfig.rewardPerAd : 50;
         
         const today = new Date().toDateString();
         const currentCampaigns = userData.adCampaignsWatched || {};
@@ -179,7 +178,7 @@ export default function AdDetail() {
 
         <div className="text-center mb-8">
           <h1 className="text-2xl font-black text-gray-900 mb-2">Rewarded Ad</h1>
-          <p className="text-gray-600 text-sm font-medium">Earn {adsConfig.rewardPerAd || 50} VA Tokens for each advertisement.</p>
+          <p className="text-gray-600 text-sm font-medium">Earn {adsConfig.rewardPerAd !== undefined ? adsConfig.rewardPerAd : 50} VA Tokens for each advertisement.</p>
         </div>
 
         <div className="space-y-4 mb-8">
@@ -216,11 +215,11 @@ export default function AdDetail() {
         ) : (
             <button 
                 onClick={handleWatchAd}
-                disabled={dailyWatched >= (adsConfig.dailyAdsLimit || 50)}
+                disabled={dailyWatched >= (adsConfig.dailyAdsLimit !== undefined ? adsConfig.dailyAdsLimit : 50)}
                 className="mt-4 w-full py-5 rounded-[24px] bg-gradient-to-br from-blue-600 to-blue-800 text-gray-900 font-black text-lg tracking-wide shadow-[0_6px_0_rgb(30,58,138),0_15px_30px_rgba(37,99,235,0.3)] active:shadow-[0_0px_0_rgb(30,58,138)] active:translate-y-[6px] transition-all disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed flex items-center justify-center space-x-3"
             >
                <Video className="w-6 h-6" />
-               <span>{dailyWatched >= (adsConfig.dailyAdsLimit || 50) ? "LIMIT REACHED" : "WATCH AD NOW"}</span>
+               <span>{dailyWatched >= (adsConfig.dailyAdsLimit !== undefined ? adsConfig.dailyAdsLimit : 50) ? "LIMIT REACHED" : "WATCH AD NOW"}</span>
             </button>
         )}
       </div>

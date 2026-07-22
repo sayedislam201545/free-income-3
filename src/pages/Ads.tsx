@@ -25,29 +25,27 @@ export default function Ads() {
   const [adsBoxes, setAdsBoxes] = useState<any[]>([]);
   const [adsConfig, setAdsConfig] = useState<any>({ dailyAdsLimit: 50 });
 
-  const isVipUser = user?.isVip === true;
+  const isVipUser = user?.isVip && user?.vipExpiry && user?.vipExpiry > Date.now();
 
   useEffect(() => {
-    const fetchBoxesAndConfig = async () => {
-      try {
-        const snap = await import("firebase/firestore").then(m => m.getDoc(m.doc(db, "settings", "ads_boxes")));
-        if (snap.exists()) {
-          setAdsBoxes(snap.data().boxes || []);
-        }
-        
-        const configSnap = await import("firebase/firestore").then(m => m.getDoc(m.doc(db, "settings", "ads_config")));
-        if (configSnap.exists()) {
+    let unsubConfig = () => {};
+    let unsubBoxes = () => {};
+    import("firebase/firestore").then(m => {
+       unsubBoxes = m.onSnapshot(m.doc(db, "settings", "ads_boxes"), (snap) => {
+          if (snap.exists()) setAdsBoxes(snap.data().boxes || []);
+       });
+       unsubConfig = m.onSnapshot(m.doc(db, "settings", "ads_rewards_config"), (configSnap) => {
+          if (configSnap.exists()) {
             const data = configSnap.data();
-            const specificConfig = isVipUser ? data.vipUser : data.normalUser;
+            const specificConfig = isVipUser ? data.vip : data.normal;
             if (specificConfig) {
-               setAdsConfig({ ...data, ...specificConfig });
+               setAdsConfig({ ...data.settings, ...specificConfig, dailyAdsLimit: specificConfig.adsLimit !== undefined ? specificConfig.adsLimit : 50 });
             } else {
-               setAdsConfig(data);
+               setAdsConfig({ ...data.settings, dailyAdsLimit: 50 });
             }
-        }
-      } catch (e) {}
-    };
-    fetchBoxesAndConfig();
+          }
+       });
+    });
     
     const adsRef = collection(db, 'ads');
     const q = query(adsRef, where("active", "==", true));
@@ -78,8 +76,8 @@ export default function Ads() {
       console.warn("Ads fetch error:", error);
       setTasks(HARDCODED_ADS);
     });
-    return () => unsubscribe();
-  }, []);
+    return () => { unsubscribe(); unsubConfig(); unsubBoxes(); };
+  }, [isVipUser]);
 
   return (
       <div className="flex flex-col min-h-screen max-w-md mx-auto w-full relative -mx-4 -my-6 px-4 py-8 bg-gradient-to-b from-slate-50 to-indigo-50">
@@ -112,7 +110,7 @@ export default function Ads() {
           const emoji = AD_EMOJIS[idx % AD_EMOJIS.length];
           const campaignId = task.fbId || task.id;
           let watchedCount = 0;
-          const limit = adsConfig.dailyAdsLimit || 50;
+          const limit = adsConfig.dailyAdsLimit !== undefined ? adsConfig.dailyAdsLimit : 50;
           if (user && user.adCampaignsWatched && user.adCampaignsWatched[campaignId]) {
              const data = user.adCampaignsWatched[campaignId];
              if (data.lastDate === new Date().toDateString()) {

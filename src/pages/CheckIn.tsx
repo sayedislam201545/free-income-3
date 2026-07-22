@@ -23,6 +23,20 @@ export default function CheckIn() {
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [streak, setStreak] = useState(0);
+  const [dailyBonusAmt, setDailyBonusAmt] = useState(30);
+
+  useEffect(() => {
+     let unsubConfig = () => {};
+     import("firebase/firestore").then(m => {
+        unsubConfig = m.onSnapshot(m.doc(db, "settings", "ads_rewards_config"), (snap) => {
+           if (snap.exists()) {
+              const bonus = snap.data()?.settings?.dailyBonus;
+              if (bonus) setDailyBonusAmt(bonus);
+           }
+        });
+     });
+     return () => unsubConfig();
+  }, []);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
 
   // Preload ad script
@@ -125,7 +139,7 @@ export default function CheckIn() {
           setStreak(streak + 1);
           
           const isVipUser = user?.isVip && user?.vipExpiry && user?.vipExpiry > Date.now();
-          const baseReward = 30;
+          let baseReward = dailyBonusAmt;
           const reward = isVipUser ? Math.floor(baseReward * 1.05) : baseReward;
 
           const { increment, updateDoc, doc, addDoc, collection } = await import("firebase/firestore");
@@ -202,7 +216,7 @@ export default function CheckIn() {
                 const absoluteDay = currentCycle + dayInCycle;
                 const claimed = absoluteDay <= streak && (absoluteDay < streak || isCheckedIn);
                 const isToday = absoluteDay === streak + (isCheckedIn ? 0 : 1);
-                const reward = absoluteDay % 7 === 0 ? 100 : 30; // Day 7 is 100
+                const reward = absoluteDay % 7 === 0 ? dailyBonusAmt * 3 : dailyBonusAmt; // Day 7 is 100
 
                 return (
                 <div key={day} className={`flex flex-col items-center p-2 rounded-[20px] min-w-[55px] border-2 transition-all ${claimed ? 'bg-crypto-primary border-crypto-primary text-white shadow-md' : isToday ? 'bg-purple-50 border-crypto-primary text-crypto-primary shadow-sm' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>

@@ -73,8 +73,21 @@ export default function Earn() {
   const [showAd, setShowAd] = useState(false);
   const [adProgress, setAdProgress] = useState(0);
 
-  const MINING_REWARD = 500;
+  const [MINING_REWARD, setMiningReward] = useState(500);
   const MINING_DURATION = 24 * 60 * 60 * 1000;
+
+  useEffect(() => {
+     let unsubConfig = () => {};
+     import("firebase/firestore").then(m => {
+        unsubConfig = m.onSnapshot(m.doc(db, "settings", "ads_rewards_config"), (snap) => {
+           if (snap.exists()) {
+               const rate = snap.data()?.settings?.miningRate;
+               if (rate) setMiningReward(rate);
+           }
+        });
+     });
+     return () => unsubConfig();
+  }, []);
 
   useEffect(() => {
     if (!user) return;

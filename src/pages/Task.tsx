@@ -194,7 +194,7 @@ export default function Task() {
       : 0;
   const pendingCount = totalTasksCount - completedCount;
 
-  const isVipUser = user?.isVip === true;
+  const isVipUser = user?.isVip && user?.vipExpiry && user?.vipExpiry > Date.now();
   const visibleCategories = isVipUser 
      ? CATEGORIES 
      : CATEGORIES.filter(cat => cat.id !== "vip");

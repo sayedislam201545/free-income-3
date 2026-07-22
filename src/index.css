@@ -62,3 +62,16 @@
     transform: translateX(100%);
   }
 }
+
+/* Google Translate Widget Overrides */
+body { top: 0 !important; }
+.goog-te-banner-frame { display: none !important; }
+.goog-te-gadget { color: transparent !important; }
+.goog-te-gadget img { display: none !important; }
+.goog-tooltip { display: none !important; }
+.goog-tooltip:hover { display: none !important; }
+.goog-text-highlight { background-color: transparent !important; border: none !important; box-shadow: none !important; }
+#google_translate_element { display: none !important; }
+.VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; }
+iframe.skiptranslate { display: none !important; }
+body { min-height: 100vh !important; }

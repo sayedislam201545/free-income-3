@@ -1354,8 +1354,7 @@ function AdminSettings() {
   const [developerData, setDeveloperData] = useState<any>({ name: "", role: "", whatsapp: "", telegram: "", image: "", description: "" });
   const [supportAgents, setSupportAgents] = useState<any[]>([]);
   const [vipPlans, setVipPlans] = useState<any[]>([]);
-  const [adsConfig, setAdsConfig] = useState<any>({});
-  const [rewardsConfig, setRewardsConfig] = useState<any>({});
+  const [adsRewardsData, setAdsRewardsData] = useState<any>({});
   
   const [adminTab, setAdminTab] = useState<"added" | "add">("added");
   const [editSupportId, setEditSupportId] = useState<string | null>(null);
@@ -1377,8 +1376,7 @@ function AdminSettings() {
 
         const adsSnap = await getDoc(doc(db, "settings", "ads_rewards_config"));
         if (adsSnap.exists()) {
-          setAdsConfig(adsSnap.data().ads || {});
-          setRewardsConfig(adsSnap.data().rewards || {});
+          setAdsRewardsData(adsSnap.data() || {});
         }
       } catch (e) {
         console.error("Failed to load settings:", e);
@@ -1427,8 +1425,9 @@ function AdminSettings() {
       }} />;
     }
     if (editing === "ads_rewards_config") {
-      return <AdsRewardsEditor onClose={() => setEditing(null)} initialAdsConfig={adsConfig} initialRewardsConfig={rewardsConfig} onSave={async (vals: any) => {
+      return <AdsRewardsEditor onClose={() => setEditing(null)} initialValues={adsRewardsData} onSave={async (vals: any) => {
         await setDoc(doc(db, "settings", "ads_rewards_config"), vals, { merge: true });
+        setAdsRewardsData(vals);
         useUIStore.getState().addToast("Saved Config");
         setEditing(null);
       }} />;
@@ -1636,7 +1635,7 @@ function AdminVIP() {
           Added
         </button>
         <button
-          onClick={() => { setActiveTab("add"); setEditingPlan({ name: "", price: 0, durationDays: 30, features: [] }); }}
+          onClick={() => { setActiveTab("add"); setEditingPlan({ title: "", photo: "", duration: 30, coin: 0, currency: "৳", buttonText: "Upgrade Now", sortOrder: 0, status: "active", features: [] }); }}
           className={`px-6 py-2 rounded-lg text-sm font-bold capitalize transition-all ${activeTab === "add" ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-white"}`}
         >
           Add
@@ -1648,17 +1647,44 @@ function AdminVIP() {
           <div className="flex justify-between items-center mb-4">
              <h3 className="font-bold text-lg">{editingPlan.id ? "Edit Plan" : "Create Plan"}</h3>
           </div>
+          
           <div className="space-y-4">
-             <div><label className="text-xs text-gray-400">Plan Name</label><input type="text" value={editingPlan.name} onChange={e => setEditingPlan({...editingPlan, name: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
              <div className="grid grid-cols-2 gap-4">
-               <div><label className="text-xs text-gray-400">Price (USDT)</label><input type="number" value={editingPlan.price} onChange={e => setEditingPlan({...editingPlan, price: parseFloat(e.target.value) || 0})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
-               <div><label className="text-xs text-gray-400">Duration (Days)</label><input type="number" value={editingPlan.durationDays} onChange={e => setEditingPlan({...editingPlan, durationDays: parseInt(e.target.value) || 0})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+               <div><label className="text-xs text-gray-400">Plan Title</label><input type="text" value={editingPlan.title || ''} onChange={e => setEditingPlan({...editingPlan, title: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+               <div><label className="text-xs text-gray-400">Photo URL</label><input type="text" value={editingPlan.photo || ''} onChange={e => setEditingPlan({...editingPlan, photo: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+             </div>
+             <div className="grid grid-cols-2 gap-4">
+               <div><label className="text-xs text-gray-400">Price (Coin/Amount)</label><input type="number" value={editingPlan.coin || 0} onChange={e => setEditingPlan({...editingPlan, coin: parseFloat(e.target.value) || 0})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+               <div><label className="text-xs text-gray-400">Currency Symbol</label><input type="text" value={editingPlan.currency || '৳'} onChange={e => setEditingPlan({...editingPlan, currency: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+             </div>
+             <div className="grid grid-cols-2 gap-4">
+               <div><label className="text-xs text-gray-400">Duration (Days)</label><input type="number" value={editingPlan.duration || 0} onChange={e => setEditingPlan({...editingPlan, duration: parseInt(e.target.value) || 0})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+               <div><label className="text-xs text-gray-400">Sort Order</label><input type="number" value={editingPlan.sortOrder || 0} onChange={e => setEditingPlan({...editingPlan, sortOrder: parseInt(e.target.value) || 0})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+             </div>
+             <div className="grid grid-cols-2 gap-4">
+               <div><label className="text-xs text-gray-400">Button Text</label><input type="text" value={editingPlan.buttonText || 'Upgrade Now'} onChange={e => setEditingPlan({...editingPlan, buttonText: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+               <div>
+                  <label className="text-xs text-gray-400">Status</label>
+                  <select value={editingPlan.status || 'active'} onChange={e => setEditingPlan({...editingPlan, status: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+               </div>
              </div>
              <div>
-                <label className="text-xs text-gray-400">Features (comma separated)</label>
-                <textarea value={editingPlan.features?.join(", ")} onChange={e => setEditingPlan({...editingPlan, features: e.target.value.split(",").map((s: string) => s.trim())})} className="w-full h-24 bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" />
+                <label className="text-xs text-gray-400">Features (comma separated texts)</label>
+                <textarea 
+                  value={(editingPlan.features || []).map((f: any) => f.text || f).join(", ")} 
+                  onChange={e => {
+                    const texts = e.target.value.split(",").map((s: string) => s.trim()).filter((s: string) => s);
+                    const features = texts.map((t: string) => ({ id: Math.random().toString(36).substr(2, 9), text: t }));
+                    setEditingPlan({...editingPlan, features});
+                  }} 
+                  className="w-full h-24 bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" 
+                />
              </div>
           </div>
+
           <div className="flex gap-4 mt-4">
             <button onClick={handleSave} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl">Save VIP Plan</button>
             <button onClick={() => { setEditingPlan(null); setActiveTab("added"); }} className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-xl">Cancel</button>
@@ -1667,13 +1693,14 @@ function AdminVIP() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {plans.map(p => (
-            <div key={p.id} className="bg-[#151A23] border border-white/5 rounded-xl p-6">
-               <h3 className="text-xl font-bold text-white mb-2">{p.name}</h3>
-               <p className="text-yellow-400 font-bold mb-4">{p.price} USDT / {p.durationDays} days</p>
+            <div key={p.id} className="bg-[#151A23] border border-white/5 rounded-xl p-6 relative overflow-hidden">
+               {p.photo && <img src={p.photo} alt={p.title} className="absolute right-0 top-0 w-24 h-24 object-cover opacity-20" />}
+               <h3 className="text-xl font-bold text-white mb-2">{p.title}</h3>
+               <p className="text-yellow-400 font-bold mb-4">{p.currency || '৳'}{p.coin} / {p.duration} days</p>
                <ul className="space-y-2 mb-6 text-sm text-gray-400">
-                 {p.features?.map((f: string, i: number) => <li key={i}>• {f}</li>)}
+                 {p.features?.map((f: any, i: number) => <li key={i}>• {f.text || f}</li>)}
                </ul>
-               <div className="flex space-x-2">
+               <div className="flex space-x-2 relative z-10">
                  <button onClick={() => { setEditingPlan(p); setActiveTab("add"); }} className="flex-1 bg-blue-500/20 text-blue-400 py-2 rounded-lg font-bold">Edit</button>
                  <button onClick={() => handleDelete(p.id)} className="flex-1 bg-red-500/20 text-red-400 py-2 rounded-lg font-bold">Delete</button>
                </div>
@@ -1685,7 +1712,6 @@ function AdminVIP() {
     </div>
   );
 }
-
 
 function AdminRequests() {
   const [requests, setRequests] = useState<any[]>([]);
@@ -1865,18 +1891,55 @@ function CoinValuesEditor({ onClose, onSave }: any) {
   );
 }
 function AdsRewardsEditor({ onClose, onSave, initialValues }: any) {
-  const [values, setValues] = useState<any>(initialValues || { normal: {}, vip: {} });
+  const [values, setValues] = useState<any>({ 
+    normal: initialValues?.normal || {}, 
+    vip: initialValues?.vip || {}, 
+    settings: initialValues?.settings || {} 
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between">
-        <h2 className="text-xl font-bold">Edit Ads/Rewards</h2>
+        <h2 className="text-xl font-bold">Edit Ads & Rewards Settings</h2>
         <button onClick={onClose}><X/></button>
       </div>
-      <div>
-        <label className="block text-sm mb-1">Normal Ads Limit</label>
-        <input type="number" value={values.normal?.adsLimit || 10} onChange={e => setValues({...values, normal: {...values.normal, adsLimit: parseInt(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-2 rounded" />
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm mb-1 text-gray-400">Normal Ads Daily Limit</label>
+          <input type="number" value={values.normal?.adsLimit ?? 10} onChange={e => setValues({...values, normal: {...values.normal, adsLimit: parseInt(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+        </div>
+        <div>
+          <label className="block text-sm mb-1 text-gray-400">Normal Ads Reward</label>
+          <input type="number" value={values.normal?.reward ?? 1} onChange={e => setValues({...values, normal: {...values.normal, reward: parseFloat(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+        </div>
+        <div>
+          <label className="block text-sm mb-1 text-yellow-400">VIP Ads Daily Limit</label>
+          <input type="number" value={values.vip?.adsLimit ?? 20} onChange={e => setValues({...values, vip: {...values.vip, adsLimit: parseInt(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+        </div>
+        <div>
+          <label className="block text-sm mb-1 text-yellow-400">VIP Ads Reward</label>
+          <input type="number" value={values.vip?.reward ?? 2} onChange={e => setValues({...values, vip: {...values.vip, reward: parseFloat(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+        </div>
+
+        <hr className="border-white/10 my-4" />
+        <h3 className="font-bold text-lg">General Settings</h3>
+
+        <div>
+          <label className="block text-sm mb-1 text-blue-400">Ads Timer (Seconds)</label>
+          <input type="number" value={values.settings?.adsSecond ?? 10} onChange={e => setValues({...values, settings: {...values.settings, adsSecond: parseInt(e.target.value) || 0}})} placeholder="e.g. 10" className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+        </div>
+        <div>
+          <label className="block text-sm mb-1 text-green-400">Daily Bonus Amount</label>
+          <input type="number" value={values.settings?.dailyBonus ?? 100} onChange={e => setValues({...values, settings: {...values.settings, dailyBonus: parseFloat(e.target.value) || 0}})} placeholder="e.g. 100" className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+        </div>
+        <div>
+          <label className="block text-sm mb-1 text-purple-400">VA Token Mining (Per 24h)</label>
+          <input type="number" value={values.settings?.miningRate ?? 50} onChange={e => setValues({...values, settings: {...values.settings, miningRate: parseFloat(e.target.value) || 0}})} placeholder="e.g. 50" className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+        </div>
       </div>
-      <button onClick={() => onSave(values)} className="w-full py-2 bg-blue-600 rounded">Save</button>
+
+      <button onClick={() => onSave(values)} className="w-full bg-blue-600 hover:bg-blue-700 font-bold py-3 rounded-xl text-white">Save Changes</button>
     </div>
   );
 }

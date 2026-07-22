@@ -1,24 +1,8 @@
 const fs = require('fs');
-let content = fs.readFileSync('src/pages/AdDetail.tsx', 'utf8');
+let code = fs.readFileSync('src/pages/AdDetail.tsx', 'utf8');
 
-const targetStr = `  useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const snap = await getDoc(doc(db, "settings", "ads_config"));
-        if (snap.exists()) {
-          setAdsConfig({ ...adsConfig, ...snap.data() });
-        }
-      } catch (e) {}
-    };
-    fetchConfig();
-  }, []);`;
-
-const newStr = `  const isVipUser = auth.currentUser ? auth.currentUser.isVip : false;
-
-  useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const snap = await getDoc(doc(db, "settings", "ads_config"));
+code = code.replace(/const snap = await getDoc\(doc\(db, "settings", "ads_rewards_config"\)\);[\s\S]*?\} catch \(e\) \{\}/,
+`const snap = await getDoc(doc(db, "settings", "ads_rewards_config"));
         if (snap.exists()) {
           const data = snap.data();
           const userRef = auth.currentUser ? doc(db, "users", auth.currentUser.uid) : null;
@@ -28,25 +12,19 @@ const newStr = `  const isVipUser = auth.currentUser ? auth.currentUser.isVip : 
           let isVip = false;
           if (userSnap && userSnap.exists()) {
              const uData = userSnap.data();
-             if (uData.isVip && uData.vipExpiry && uData.vipExpiry > Date.now()) {
+             if (uData.isVip === true) {
                 isVip = true;
              }
           }
           
-          const specificConfig = isVip ? data.vipUser : data.normalUser;
+          const specificConfig = isVip ? data.vip : data.normal;
+          const settings = data.settings || {};
           if (specificConfig) {
-             setAdsConfig({ ...adsConfig, ...data, ...specificConfig });
+             setAdsConfig({ ...settings, ...specificConfig, adWatchDuration: settings.adsSecond || 15 });
           } else {
-             setAdsConfig({ ...adsConfig, ...data });
+             setAdsConfig({ ...settings, adWatchDuration: settings.adsSecond || 15 });
           }
         }
-      } catch (e) {}
-    };
-    fetchConfig();
-  }, []);`;
+      } catch (e) {}`);
 
-if (content.includes(targetStr)) {
-  content = content.replace(targetStr, newStr);
-  fs.writeFileSync('src/pages/AdDetail.tsx', content);
-  console.log("Updated AdDetail");
-}
+fs.writeFileSync('src/pages/AdDetail.tsx', code);
