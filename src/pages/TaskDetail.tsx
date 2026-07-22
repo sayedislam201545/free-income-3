@@ -313,39 +313,35 @@ export default function TaskDetail() {
           <div className="bg-white rounded-[32px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-2 border-gray-100 mt-6 animate-in fade-in slide-in-from-bottom-8 relative overflow-hidden">
             <h3 className="font-black text-xl text-[#2C334A] tracking-tight mb-6">Submit Your Proof</h3>
 
-                        <div className="mb-4">
-              <label className="block text-xs font-bold text-gray-600 mb-1">
-                Upload Screenshots (Max 3)
-              </label>
-              <div className="flex space-x-2">
-                {[0, 1, 2].map((i) => (
-                  <label
-                    key={i}
-                    className="flex-1 aspect-square bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 transition-colors relative overflow-hidden"
-                  >
-                    {screenshots[i] ? (
-                      <img src={URL.createObjectURL(screenshots[i])} className="w-full h-full object-cover" alt="Preview" />
-                    ) : (
-                      <ImageIcon className="w-6 h-6" />
-                    )}
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          const newFiles = [...screenshots];
-                          newFiles[i] = e.target.files[0];
-                          setScreenshots(newFiles);
-                        }
-                      }} 
-                    />
-                  </label>
-                ))}
+                        <div className="mb-4 space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-600 mb-1">User Name</label>
+                <input type="text" value={user?.username || user?.firstName || "Unknown User"} disabled className="w-full bg-gray-100 border border-gray-200 rounded-xl p-3 text-sm text-gray-500 cursor-not-allowed" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-600 mb-1">User ID</label>
+                <input type="text" value={user?.telegramId || user?.uid || ""} disabled className="w-full bg-gray-100 border border-gray-200 rounded-xl p-3 text-sm text-gray-500 cursor-not-allowed" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-600 mb-1">Task ID</label>
+                <input type="text" value={task?.id || ""} disabled className="w-full bg-gray-100 border border-gray-200 rounded-xl p-3 text-sm text-gray-500 cursor-not-allowed" />
               </div>
             </div>
 
             <div className="mb-4">
+              <label className="block text-xs font-bold text-gray-600 mb-1">
+                Profile Link
+              </label>
+              <input
+                type="url"
+                value={profileLink}
+                onChange={(e) => setProfileLink(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="https://..."
+              />
+            </div>
+            
+            <div className="mb-6">
               <label className="block text-xs font-bold text-gray-600 mb-1">
                 Note / Task details
               </label>
@@ -358,25 +354,12 @@ export default function TaskDetail() {
               />
             </div>
 
-            <div className="mb-6">
-              <label className="block text-xs font-bold text-gray-600 mb-1">
-                Profile Link
-              </label>
-              <input
-                type="url"
-                value={profileLink}
-                onChange={(e) => setProfileLink(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="https://..."
-              />
-            </div>
-
             <button
               disabled={isUploading}
               onClick={handleAppSubmit}
               className={`w-full py-4 ${isUploading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700 active:scale-95'} text-white rounded-xl font-bold shadow-md transition-all`}
             >
-              {isUploading ? 'Uploading & Submitting...' : 'Submit to Admin'}
+              {isUploading ? 'Submitting...' : 'Submit to Admin'}
             </button>
           </div>
         )}

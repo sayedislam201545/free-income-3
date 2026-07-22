@@ -16,6 +16,7 @@ import { playSound } from "../lib/sounds";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import AnimatedCounter from "../components/AnimatedCounter";
+import { formatNumber, formatShortNumber } from "../lib/utils";
 
 
 export default function Dashboard() {
@@ -248,7 +249,7 @@ const [bonusAdReward] = useState(30);
       id: 1,
       icon: "💰",
       title: "Total Earned",
-      value: realStats.totalEarned.toLocaleString(),
+      value: formatShortNumber(realStats.totalEarned),
       rawValue: realStats.totalEarned,
       sub: "Coins",
       color: "text-indigo-600",
@@ -292,7 +293,7 @@ const [bonusAdReward] = useState(30);
       id: 5,
       icon: "🎁",
       title: "Total Rewards",
-      value: (user?.vaBalance || 0).toLocaleString(),
+      value: formatShortNumber(user?.vaBalance || 0),
       rawValue: user?.vaBalance || 0,
       sub: "Coins",
       color: "text-amber-500",
@@ -441,22 +442,7 @@ const [bonusAdReward] = useState(30);
 
       
       {/* Quick Actions (Main Menu) */}
-      <div className="flex justify-between items-center space-x-3 mb-6">
-        <button 
-          onClick={() => navigate('/tasks')}
-          className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3.5 rounded-2xl shadow-lg flex items-center justify-center space-x-2 active:scale-95 transition-all"
-        >
-          <span className="text-xl">📋</span>
-          <span>Tasks</span>
-        </button>
-        <button 
-          onClick={() => navigate('/ads')}
-          className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-bold py-3.5 rounded-2xl shadow-lg flex items-center justify-center space-x-2 active:scale-95 transition-all"
-        >
-          <span className="text-xl">📺</span>
-          <span>Ads</span>
-        </button>
-      </div>
+      
 
       {/* Content Grid */}
       <div className="grid grid-cols-3 gap-3">

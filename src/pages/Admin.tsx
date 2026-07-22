@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Routes, Route, Link, useNavigate, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Upload, Settings, X, Shield, ListTodo, CheckCircle, Trophy, Bell, Coins, FileText, User, Trash2, Edit, Clock, Copy, Plus, Edit3 } from "lucide-react";
+import { LayoutDashboard, Users, Upload, Settings, X, Shield, ListTodo, CheckCircle, Trophy, Bell, Coins, FileText, User, Trash2, Edit, Clock, Copy, Plus, Edit3, Ban } from "lucide-react";
 import { db } from "../lib/firebase";
 import { jsPDF } from "jspdf";
+import { formatShortNumber, formatNumber } from "../lib/utils";
 import {
   collection,
   onSnapshot,
@@ -135,7 +136,7 @@ function AdminDashboard() {
         {[
           { label: "Total Users", value: stats.totalUsers, icon: "👥" },
           { label: "VIP Users", value: stats.vipUsers, icon: "👑" },
-          { label: "Total Coins", value: stats.totalCoins.toLocaleString(), icon: "💰" },
+          { label: "Total Coins", value: formatShortNumber(stats.totalCoins), icon: "💰" },
           { label: "Ads Watched", value: stats.adsWatched.toLocaleString(), icon: "📺" },
           { label: "Pending Tasks", value: stats.pendingSubmissions, icon: "⏳" },
         ].map((stat, i) => (
@@ -535,6 +536,9 @@ function AdminSubmissions() {
 function AdminUsers() {
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [newBalance, setNewBalance] = useState<string>("");
+  const [balanceOperation, setBalanceOperation] = useState<"" | "add" | "subtract">("");
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "users"), (snap) => {
@@ -554,61 +558,268 @@ function AdminUsers() {
     }
   }
 
+  const handleUpdateStatus = async (userId: string, currentStatus: string) => {
+    try {
+      await updateDoc(doc(db, "users", userId), { status: currentStatus === "banned" ? "active" : "banned" });
+      useUIStore.getState().addToast(currentStatus === "banned" ? "User Unbanned" : "User Banned");
+    } catch(e) {
+      useUIStore.getState().addToast("Error updating status", "error");
+    }
+  }
+
+  const handleUpdateBalance = async () => {
+    if (!selectedUser || !balanceOperation) return;
+    try {
+      const parsed = parseFloat(newBalance);
+      if (isNaN(parsed) || parsed <= 0) {
+        useUIStore.getState().addToast("Enter a valid amount", "error");
+        return;
+      }
+      const amount = balanceOperation === 'add' ? parsed : -parsed;
+      await updateDoc(doc(db, "users", selectedUser.id), { vaBalance: increment(amount) });
+      useUIStore.getState().addToast(`Balance ${balanceOperation === 'add' ? 'increased' : 'decreased'} by ${parsed}`);
+      setNewBalance("");
+      setBalanceOperation("");
+    } catch(e) {
+      useUIStore.getState().addToast("Error updating balance", "error");
+    }
+  }
+
+  const handleDeleteUser = async (userId: string) => {
+    if (window.confirm("Are you sure you want to delete this user completely?")) {
+      try {
+        await deleteDoc(doc(db, "users", userId));
+        useUIStore.getState().addToast("User deleted");
+        setSelectedUser(null);
+      } catch(e) {
+        useUIStore.getState().addToast("Error deleting user", "error");
+      }
+    }
+  }
+
+  const getFullName = (u: any) => {
+    if (u.fullName) return u.fullName;
+    if (u.displayName) return u.displayName;
+    const name = `${u.firstName || u.first_name || ""} ${u.lastName || u.last_name || ""}`.trim();
+    return name || u.name || "Unknown";
+  };
+
   const filtered = users.filter(u => 
-    (u.name || "").toLowerCase().includes(search.toLowerCase()) || 
-    (u.telegramId || "").toString().includes(search)
+    getFullName(u).toLowerCase().includes(search.toLowerCase()) || 
+    (u.telegramId || "").toString().includes(search) ||
+    (u.username || "").toLowerCase().includes(search.toLowerCase())
   );
 
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Users Management</h2>
-        <input 
-          type="text" 
-          placeholder="Search by name or ID..." 
-          value={search} 
-          onChange={e => setSearch(e.target.value)}
-          className="bg-[#151A23] border border-white/10 rounded-xl p-2 text-white"
-        />
+  // Auto-update selected user from the live list
+  useEffect(() => {
+    if (selectedUser) {
+      const liveUser = users.find(u => u.id === selectedUser.id);
+      if (liveUser) {
+        setSelectedUser(liveUser);
+      } else {
+        setSelectedUser(null); // User was deleted
+      }
+    }
+  }, [users]);
+
+  const formatShortNumber = (num: number) => {
+    if (typeof num !== 'number' || isNaN(num)) return '0.00';
+    if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'm';
+    if (num >= 10000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    return num.toFixed(2);
+  };
+
+  if (selectedUser) {
+    return (
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 pb-10">
+        <div className="flex items-center space-x-3 mb-6">
+          <button onClick={() => { setSelectedUser(null); setBalanceOperation(""); setNewBalance(""); }} className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors">
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+          <h2 className="text-xl font-bold">User Details</h2>
+        </div>
+
+        {/* 1st Box: Profile Info */}
+        <div className="bg-[#151A23] border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl"></div>
+          <div className="relative flex flex-col items-center sm:flex-row sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
+            <div className="w-24 h-24 rounded-full bg-[#0B0E14] border-4 border-[#1C2331] shadow-xl overflow-hidden shrink-0 flex items-center justify-center">
+              {selectedUser.photoUrl ? (
+                <img src={selectedUser.photoUrl} alt="User" className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-10 h-10 text-gray-500" />
+              )}
+            </div>
+            <div className="flex-1 text-center sm:text-left space-y-2">
+              <h3 className="text-2xl font-black text-white">{getFullName(selectedUser)}</h3>
+              <p className="text-gray-400 text-sm font-medium">@{selectedUser.username || "no_username"}</p>
+              <div className="inline-flex items-center space-x-2 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5">
+                <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">ID</span>
+                <span className="text-sm text-white font-mono">{selectedUser.telegramId || selectedUser.id}</span>
+              </div>
+              <div className="flex flex-wrap justify-center sm:justify-start gap-2 pt-2">
+                <span className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${selectedUser.status === 'banned' ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>
+                  {selectedUser.status === 'banned' ? 'Banned' : 'Normal'}
+                </span>
+                <span className="px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider bg-blue-500/20 text-blue-400">
+                  {selectedUser.role === 'admin' || selectedUser.role === 'super_admin' ? 'Admin' : (selectedUser.role === 'vip' ? 'VIP' : 'User')}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 2nd Box: Stats (2 items per row) */}
+        <div className="bg-[#151A23] border border-white/10 rounded-2xl p-6 shadow-2xl">
+          <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center"><Trophy className="w-4 h-4 mr-2" /> Statistics</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-[#0B0E14] border border-white/5 p-4 rounded-xl flex flex-col items-center justify-center text-center">
+              <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-1">Balance</span>
+              <span className="text-xl font-black text-green-400">{formatShortNumber(selectedUser.vaBalance || 0)} VA</span>
+            </div>
+            <div className="bg-[#0B0E14] border border-white/5 p-4 rounded-xl flex flex-col items-center justify-center text-center">
+              <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-1">Total Referrals</span>
+              <span className="text-xl font-black text-white">{selectedUser.referralsCount || 0}</span>
+            </div>
+            <div className="bg-[#0B0E14] border border-white/5 p-4 rounded-xl flex flex-col items-center justify-center text-center">
+              <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-1">Total Tasks</span>
+              <span className="text-xl font-black text-white">{selectedUser.tasksCompleted || 0}</span>
+            </div>
+            <div className="bg-[#0B0E14] border border-white/5 p-4 rounded-xl flex flex-col items-center justify-center text-center">
+              <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-1">Ads Watched</span>
+              <span className="text-xl font-black text-white">{selectedUser.adsWatchedTotal || 0}</span>
+            </div>
+            <div className="bg-[#0B0E14] border border-white/5 p-4 rounded-xl flex flex-col items-center justify-center text-center">
+              <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-1">Global Rank</span>
+              <span className="text-xl font-black text-orange-400">#{selectedUser.rank || 'N/A'}</span>
+            </div>
+            <div className="bg-[#0B0E14] border border-white/5 p-4 rounded-xl flex flex-col items-center justify-center text-center">
+              <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-1">User Level</span>
+              <span className="text-xl font-black text-purple-400">Lv {selectedUser.level || 1}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 3rd Box: Actions */}
+        <div className="bg-[#151A23] border border-white/10 rounded-2xl p-6 shadow-2xl space-y-6">
+          <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center"><Settings className="w-4 h-4 mr-2" /> Actions</h4>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Role Management</label>
+              <select 
+                value={selectedUser.role || "user"}
+                onChange={(e) => handleUpdateRole(selectedUser.id, e.target.value)}
+                className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white font-medium focus:outline-none focus:border-blue-500 transition-colors"
+              >
+                <option value="user">User</option>
+                <option value="vip">VIP</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+
+            <div className="pt-4 border-t border-white/5">
+              <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Coin Balance Update (+ / -)</label>
+              <select
+                value={balanceOperation}
+                onChange={(e) => { setBalanceOperation(e.target.value as any); setNewBalance(""); }}
+                className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white font-medium focus:outline-none focus:border-blue-500 transition-colors mb-3"
+              >
+                <option value="">Select Operation...</option>
+                <option value="add">Add Coins (+)</option>
+                <option value="subtract">Subtract Coins (-)</option>
+              </select>
+              
+              {balanceOperation && (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                  <input 
+                    type="number" 
+                    step="any"
+                    value={newBalance}
+                    onChange={(e) => setNewBalance(e.target.value)}
+                    placeholder="Enter amount to update..."
+                    className="w-full bg-[#0B0E14] border border-blue-500/30 rounded-xl p-3 text-white font-medium focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                  <button 
+                    onClick={handleUpdateBalance} 
+                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-900/20"
+                  >
+                    Update Balance
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4 border-t border-white/5 grid grid-cols-2 gap-4">
+               <button 
+                 onClick={() => handleUpdateStatus(selectedUser.id, selectedUser.status)}
+                 className={`py-3 rounded-xl font-bold uppercase tracking-wider text-xs transition-all shadow-lg ${selectedUser.status === 'banned' ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-900/20' : 'bg-orange-600 hover:bg-orange-700 text-white shadow-orange-900/20'}`}
+               >
+                 <div className="flex items-center justify-center space-x-2"><Ban className="w-4 h-4"/> <span>{selectedUser.status === 'banned' ? 'Unban User' : 'Ban User'}</span></div>
+               </button>
+
+               <button 
+                 onClick={() => handleDeleteUser(selectedUser.id)}
+                 className="py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold uppercase tracking-wider text-xs transition-all shadow-lg shadow-red-900/20"
+               >
+                 <div className="flex items-center justify-center space-x-2"><Trash2 className="w-4 h-4"/> <span>Delete User</span></div>
+               </button>
+            </div>
+          </div>
+        </div>
+
       </div>
-      <div className="bg-[#151A23] border border-white/5 rounded-2xl p-4 overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-white/5 text-gray-400 text-sm">
-              <th className="p-3">User</th>
-              <th className="p-3">Telegram ID</th>
-              <th className="p-3">Balance (VA)</th>
-              <th className="p-3">Role</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(u => (
-              <tr key={u.id} className="border-b border-white/5">
-                <td className="p-3">
-                  <div className="font-bold text-white">{u.name || "Unknown"}</div>
-                  <div className="text-xs text-gray-500">@{u.username || "no_username"}</div>
-                </td>
-                <td className="p-3 text-gray-300">{u.telegramId || u.id}</td>
-                <td className="p-3 text-yellow-400 font-bold">{u.vaBalance || 0}</td>
-                <td className="p-3">
-                   <select 
-                     value={u.role || "user"} 
-                     onChange={(e) => handleUpdateRole(u.id, e.target.value)}
-                     className="bg-[#0B0E14] border border-white/10 rounded-lg p-1.5 text-xs text-white"
-                   >
-                     <option value="user">User</option>
-                     <option value="vip">VIP</option>
-                     <option value="admin">Admin</option>
-                   </select>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    );
+  }
+
+  return (
+    <div className="space-y-6 animate-in fade-in">
+      <div className="flex flex-col space-y-4 mb-6">
+        <h2 className="text-2xl font-bold text-white tracking-tight">Users Management</h2>
+        <div className="relative">
+          <input 
+            type="text" 
+            placeholder="Search by name, username or ID..." 
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full bg-[#151A23] border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-blue-500 transition-all shadow-lg"
+          />
+          <Users className="w-5 h-5 text-gray-500 absolute left-3 top-3.5" />
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 gap-4">
+        {filtered.map(u => (
+          <div key={u.id} className="bg-[#151A23] border border-white/10 rounded-2xl p-4 flex items-center justify-between shadow-lg hover:border-white/20 transition-all">
+            <div className="flex items-center space-x-4 min-w-0">
+               <div className="w-12 h-12 rounded-full bg-[#0B0E14] border border-white/5 shrink-0 overflow-hidden flex items-center justify-center">
+                  {u.photoUrl ? <img src={u.photoUrl} alt="" className="w-full h-full object-cover"/> : <User className="w-5 h-5 text-gray-500" />}
+               </div>
+               <div className="min-w-0">
+                 <h3 className="font-bold text-white truncate text-base">{getFullName(u)}</h3>
+                 <p className="text-xs text-gray-400 truncate">@{u.username || "no_username"}</p>
+                 {u.status === 'banned' && <span className="inline-block mt-1 bg-red-500/20 text-red-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Banned</span>}
+               </div>
+            </div>
+            <button 
+              onClick={() => setSelectedUser(u)} 
+              className="ml-4 shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl font-bold text-sm transition-all shadow-lg shadow-blue-900/20"
+            >
+              GO
+            </button>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <div className="text-center py-10 bg-[#151A23] border border-white/10 rounded-2xl">
+            <Users className="w-10 h-10 text-gray-500 mx-auto mb-3" />
+            <p className="text-gray-400 font-medium">No users found</p>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
 
 function AdminAchievements() {
   const [achievements, setAchievements] = useState<any[]>([]);
@@ -1139,19 +1350,15 @@ function AdminSettings() {
   const [editContent, setEditContent] = useState("");
   
   // Data States
-  const [botSettingData, setBotSettingData] = useState<any>({ botUsername: "", botToken: "", botHostingLink: "", miniAppUrl: "", paymentChannelId: "", othersChannelId: "" });
-  const [developerData, setDeveloperData] = useState<any>({ name: "", role: "", whatsapp: "", image: "" });
+  const [botSettingData, setBotSettingData] = useState<any>({ botUsername: "", botToken: "", botHostingLink: "", miniAppUrl: "", paymentChannelId: "", othersChannelId: "", imgbbApi: "" });
+  const [developerData, setDeveloperData] = useState<any>({ name: "", role: "", whatsapp: "", telegram: "", image: "", description: "" });
   const [supportAgents, setSupportAgents] = useState<any[]>([]);
   const [vipPlans, setVipPlans] = useState<any[]>([]);
   const [adsConfig, setAdsConfig] = useState<any>({});
   const [rewardsConfig, setRewardsConfig] = useState<any>({});
-  const [coinValues, setCoinValues] = useState<any>({});
-  const [adsBoxes, setAdsBoxes] = useState<any[]>([]);
-
-  // Sub-tabs for internal editors
-  const [adminTab, setAdminTab] = useState<"add" | "added">("added");
+  
+  const [adminTab, setAdminTab] = useState<"added" | "add">("added");
   const [editSupportId, setEditSupportId] = useState<string | null>(null);
-  const [editVipId, setEditVipId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -1162,29 +1369,23 @@ function AdminSettings() {
         const devSnap = await getDoc(doc(db, "settings", "developer_profile"));
         if (devSnap.exists()) setDeveloperData(devSnap.data());
 
-        const supSnap = await getDoc(doc(db, "settings", "support"));
-        if (supSnap.exists()) setSupportAgents(supSnap.data().agents || []);
+        const supportSnap = await getDoc(doc(db, "settings", "support"));
+        if (supportSnap.exists() && supportSnap.data().agents) setSupportAgents(supportSnap.data().agents);
 
         const vipSnap = await getDoc(doc(db, "settings", "vip_plans"));
-        if (vipSnap.exists()) setVipPlans(vipSnap.data().plans || []);
+        if (vipSnap.exists() && vipSnap.data().plans) setVipPlans(vipSnap.data().plans);
 
-        const adsSnap = await getDoc(doc(db, "settings", "ads_config"));
-        if (adsSnap.exists()) setAdsConfig(adsSnap.data());
-
-        const rewSnap = await getDoc(doc(db, "settings", "rewards_config"));
-        if (rewSnap.exists()) setRewardsConfig(rewSnap.data());
-
-        const cvSnap = await getDoc(doc(db, "settings", "coin_values"));
-        if (cvSnap.exists()) setCoinValues(cvSnap.data());
-        
-        const boxesSnap = await getDoc(doc(db, "settings", "ads_boxes"));
-        if (boxesSnap.exists()) setAdsBoxes(boxesSnap.data().boxes || []);
-      } catch (err) {
-        console.warn("Failed to fetch settings", err);
+        const adsSnap = await getDoc(doc(db, "settings", "ads_rewards_config"));
+        if (adsSnap.exists()) {
+          setAdsConfig(adsSnap.data().ads || {});
+          setRewardsConfig(adsSnap.data().rewards || {});
+        }
+      } catch (e) {
+        console.error("Failed to load settings:", e);
       }
     };
     fetchSettings();
-  }, []);
+  }, [editing]);
 
   const handleEdit = async (key: string) => {
     setEditing(key);
@@ -1221,85 +1422,23 @@ function AdminSettings() {
     if (editing === "feature_toggles") {
       return <FeatureTogglesEditor onClose={() => setEditing(null)} onSave={async (vals: any) => {
         await setDoc(doc(db, "settings", "feature_toggles"), vals, { merge: true });
-        useUIStore.getState().addToast("Saved Toggles!");
+        useUIStore.getState().addToast("Saved Toggles");
         setEditing(null);
       }} />;
     }
-    
     if (editing === "ads_rewards_config") {
-      return (
-        <AdsRewardsEditor
-          onClose={() => setEditing(null)}
-          onSave={async (adsConf: any, rewConf: any, boxes: any) => {
-            try {
-              await setDoc(doc(db, "settings", "ads_config"), adsConf, { merge: true });
-              await setDoc(doc(db, "settings", "rewards_config"), rewConf, { merge: true });
-              await setDoc(doc(db, "settings", "ads_boxes"), { boxes }, { merge: true });
-              useUIStore.getState().addToast("Saved Ads & Rewards Settings!");
-              setEditing(null);
-            } catch (e) {
-              useUIStore.getState().addToast("Failed to save", "error");
-            }
-          }}
-          initialAdsConfig={adsConfig}
-          initialRewardsConfig={rewardsConfig}
-          initialAdsBoxes={adsBoxes}
-        />
-      );
+      return <AdsRewardsEditor onClose={() => setEditing(null)} initialAdsConfig={adsConfig} initialRewardsConfig={rewardsConfig} onSave={async (vals: any) => {
+        await setDoc(doc(db, "settings", "ads_rewards_config"), vals, { merge: true });
+        useUIStore.getState().addToast("Saved Config");
+        setEditing(null);
+      }} />;
     }
-    
     if (editing === "coin_values") {
-      return (
-        <CoinValuesEditor
-          onClose={() => setEditing(null)}
-          onSave={async (values: any) => {
-            await setDoc(doc(db, "settings", "coin_values"), values);
-            useUIStore.getState().addToast("Saved Coin Values!");
-            setEditing(null);
-          }}
-          initialValues={coinValues}
-        />
-      );
-    }
-
-    if (editing === "bot_setting") {
-      return (
-        <div className="space-y-6 max-w-4xl animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center space-x-4 mb-6">
-            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
-            <h2 className="text-xl font-bold">Bot Setting</h2>
-          </div>
-          <div className="bg-[#151A23] rounded-2xl p-6 border border-white/5 shadow-xl space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Bot Username</label>
-              <input type="text" value={botSettingData.botUsername || ""} onChange={(e) => setBotSettingData({...botSettingData, botUsername: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. MySuperBot" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Bot Token</label>
-              <input type="text" value={botSettingData.botToken || ""} onChange={(e) => setBotSettingData({...botSettingData, botToken: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="123456:ABC-DEF..." />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Mini App Link</label>
-              <input type="text" value={botSettingData.miniAppUrl || ""} onChange={(e) => setBotSettingData({...botSettingData, miniAppUrl: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="https://t.me/MyBot/app" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Hosting Link</label>
-              <input type="text" value={botSettingData.botHostingLink || ""} onChange={(e) => setBotSettingData({...botSettingData, botHostingLink: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="https://my-app.com" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Payment Channel ID</label>
-              <input type="text" value={botSettingData.paymentChannelId || ""} onChange={(e) => setBotSettingData({...botSettingData, paymentChannelId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="@my_payment_channel or -100xxxxx" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Adars (Others) Message Channel ID</label>
-              <input type="text" value={botSettingData.othersChannelId || ""} onChange={(e) => setBotSettingData({...botSettingData, othersChannelId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="@my_updates_channel or -100xxxxx" />
-            </div>
-            <button onClick={() => handleSave(false)} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg mt-6">
-              Save Settings
-            </button>
-          </div>
-        </div>
-      );
+      return <CoinValuesEditor onClose={() => setEditing(null)} onSave={async (vals: any) => {
+        await setDoc(doc(db, "settings", "coin_values"), vals, { merge: true });
+        useUIStore.getState().addToast("Saved Coin Values");
+        setEditing(null);
+      }} />;
     }
 
     if (editing === "developer_profile") {
@@ -1311,10 +1450,46 @@ function AdminSettings() {
           </div>
           <div className="bg-[#151A23] rounded-2xl p-6 border border-white/5 space-y-4">
              <div><label className="block text-xs font-bold text-gray-400 mb-1">Name</label><input type="text" value={developerData.name || ""} onChange={(e) => setDeveloperData({...developerData, name: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
-             <div><label className="block text-xs font-bold text-gray-400 mb-1">Role</label><input type="text" value={developerData.role || ""} onChange={(e) => setDeveloperData({...developerData, role: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
-             <div><label className="block text-xs font-bold text-gray-400 mb-1">WhatsApp URL</label><input type="text" value={developerData.whatsapp || ""} onChange={(e) => setDeveloperData({...developerData, whatsapp: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+             <div><label className="block text-xs font-bold text-gray-400 mb-1">Role Title</label><input type="text" value={developerData.role || ""} onChange={(e) => setDeveloperData({...developerData, role: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+             <div><label className="block text-xs font-bold text-gray-400 mb-1">Photo URL</label><input type="text" value={developerData.image || ""} onChange={(e) => setDeveloperData({...developerData, image: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" placeholder="https://..." /></div>
+             <div><label className="block text-xs font-bold text-gray-400 mb-1">Bio / Description</label><textarea value={developerData.description || ""} onChange={(e) => setDeveloperData({...developerData, description: e.target.value})} className="w-full h-24 bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+             <div><label className="block text-xs font-bold text-gray-400 mb-1">WhatsApp URL</label><input type="text" value={developerData.whatsapp || ""} onChange={(e) => setDeveloperData({...developerData, whatsapp: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" placeholder="https://wa.me/..." /></div>
+             <div><label className="block text-xs font-bold text-gray-400 mb-1">Telegram URL</label><input type="text" value={developerData.telegram || ""} onChange={(e) => setDeveloperData({...developerData, telegram: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" placeholder="https://t.me/..." /></div>
           </div>
-          <button onClick={() => handleSave(false)} className="w-full mt-6 bg-blue-600 text-white font-bold py-3 rounded-xl">Save Developer Profile</button>
+          <button onClick={() => handleSave(false)} className="w-full mt-6 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors">Save Developer Profile</button>
+        </div>
+      );
+    }
+
+    if (editing === "bot_setting") {
+      return (
+        <div className="space-y-6 max-w-4xl animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center space-x-3 mb-6">
+            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+            <h2 className="text-xl font-bold">Bot Settings</h2>
+          </div>
+          <div className="bg-[#151A23] rounded-2xl p-6 border border-white/5 space-y-4">
+             <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Imgbb API Key (For Task Proofs)</label>
+              <input type="text" value={botSettingData.imgbbApi || ""} onChange={(e) => setBotSettingData({...botSettingData, imgbbApi: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white mb-4" placeholder="e.g. 1234567890abcdef..." />
+              <label className="block text-xs font-bold text-gray-400 mb-1">Bot Username</label>
+              <input type="text" value={botSettingData.botUsername || ""} onChange={(e) => setBotSettingData({...botSettingData, botUsername: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
+             </div>
+             <div><label className="block text-xs font-bold text-gray-400 mb-1">Bot Token</label><input type="password" value={botSettingData.botToken || ""} onChange={(e) => setBotSettingData({...botSettingData, botToken: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" /></div>
+             <div><label className="block text-xs font-bold text-gray-400 mb-1">Payment Channel ID</label><input type="text" value={botSettingData.paymentChannelId || ""} onChange={(e) => setBotSettingData({...botSettingData, paymentChannelId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" /></div>
+          </div>
+          <button onClick={() => handleSave(false)} className="w-full mt-6 bg-blue-600 text-white font-bold py-3 rounded-xl">Save Settings</button>
+        </div>
+      );
+    }
+
+    if (editing === "vip_plan") {
+      return (
+        <div className="space-y-6 max-w-4xl animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center space-x-4 mb-6">
+            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+          </div>
+          <AdminVIP />
         </div>
       );
     }
@@ -1363,52 +1538,7 @@ function AdminSettings() {
         </div>
       );
     }
-    
-    if (editing === "vip_plan") {
-      return (
-        <div className="space-y-6 max-w-4xl animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center space-x-3 mb-6">
-            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
-            <h2 className="text-xl font-bold">VIP Plan Management</h2>
-          </div>
-          <div className="flex space-x-2 bg-[#1C2331] p-1.5 rounded-xl mb-6">
-            <button onClick={() => setAdminTab("added")} className={`flex-1 py-2 rounded-lg font-bold transition-all ${adminTab === "added" ? "bg-purple-600 text-white" : "text-gray-400"}`}>VIP Plans</button>
-            <button onClick={() => { setAdminTab("add"); setVipPlans([...vipPlans, { id: Date.now().toString(), title: "", price: "", originalPrice: "", description: "", validDays: 30, discount: "" }]); setEditVipId(Date.now()); }} className={`flex-1 py-2 rounded-lg font-bold transition-all ${adminTab === "add" ? "bg-purple-600 text-white" : "text-gray-400"}`}>Add New</button>
-          </div>
-          {adminTab === "added" && (
-            <div className="grid grid-cols-1 gap-4">
-              {vipPlans.filter(p => p.title.trim() !== "").map(plan => (
-                <div key={plan.id} className="bg-[#151A23] border border-white/10 rounded-xl p-4 flex justify-between items-center">
-                  <div><p className="font-bold text-white">{plan.title}</p><p className="text-xs text-gray-400">Price: {plan.price} BDT</p></div>
-                  <div className="flex space-x-2">
-                    <button onClick={() => { setEditVipId(plan.id); setAdminTab("add"); }} className="p-2 bg-blue-500/20 text-blue-400 rounded-lg"><Edit3 className="w-4 h-4" /></button>
-                    <button onClick={() => { setVipPlans(vipPlans.filter(p => p.id !== plan.id)); setTimeout(() => handleSave(true), 100); }} className="p-2 bg-red-500/20 text-red-400 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {adminTab === "add" && (
-             <div className="space-y-6">
-              {vipPlans.filter(p => p.id === editVipId).map(plan => (
-                <div key={plan.id} className="bg-[#151A23] border border-white/10 rounded-xl p-6">
-                  <div className="space-y-4">
-                    <div><label className="text-xs text-gray-400">Title</label><input type="text" value={plan.title} onChange={(e) => setVipPlans(vipPlans.map(p => p.id === plan.id ? {...p, title: e.target.value} : p))} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
-                    <div><label className="text-xs text-gray-400">Price</label><input type="text" value={plan.price} onChange={(e) => setVipPlans(vipPlans.map(p => p.id === plan.id ? {...p, price: e.target.value} : p))} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
-                  </div>
-                  <div className="flex space-x-4 mt-6">
-                    <button onClick={() => { handleSave(true); setAdminTab("added"); }} className="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl">Save Plan</button>
-                    <button onClick={() => { setVipPlans(vipPlans.filter(p => p.title.trim() !== "")); setAdminTab("added"); }} className="flex-1 bg-gray-600 text-white font-bold py-3 rounded-xl">Cancel</button>
-                  </div>
-                </div>
-              ))}
-             </div>
-          )}
-        </div>
-      );
-    }
-    
-    // Fallback for rich text editors (Privacy Policy, Terms, etc.)
+
     return (
       <div className="space-y-6 max-w-4xl">
         <div className="flex items-center justify-between mb-6">
@@ -1423,7 +1553,6 @@ function AdminSettings() {
     );
   }
 
-  // Base list render when not editing
   return (
     <div className="space-y-6 max-w-4xl">
       <h2 className="text-2xl font-bold mb-6 text-white tracking-tight">Admin Settings</h2>
@@ -1452,6 +1581,7 @@ function AdminSettings() {
     </div>
   );
 }
+
 
 function AdminVIP() {
   const [plans, setPlans] = useState<any[]>([]);
@@ -1521,8 +1651,8 @@ function AdminVIP() {
           <div className="space-y-4">
              <div><label className="text-xs text-gray-400">Plan Name</label><input type="text" value={editingPlan.name} onChange={e => setEditingPlan({...editingPlan, name: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
              <div className="grid grid-cols-2 gap-4">
-               <div><label className="text-xs text-gray-400">Price (USDT)</label><input type="number" value={editingPlan.price} onChange={e => setEditingPlan({...editingPlan, price: parseFloat(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
-               <div><label className="text-xs text-gray-400">Duration (Days)</label><input type="number" value={editingPlan.durationDays} onChange={e => setEditingPlan({...editingPlan, durationDays: parseInt(e.target.value)})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+               <div><label className="text-xs text-gray-400">Price (USDT)</label><input type="number" value={editingPlan.price} onChange={e => setEditingPlan({...editingPlan, price: parseFloat(e.target.value) || 0})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+               <div><label className="text-xs text-gray-400">Duration (Days)</label><input type="number" value={editingPlan.durationDays} onChange={e => setEditingPlan({...editingPlan, durationDays: parseInt(e.target.value) || 0})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
              </div>
              <div>
                 <label className="text-xs text-gray-400">Features (comma separated)</label>
@@ -1588,8 +1718,28 @@ function AdminRequests() {
 
   const handleStatusUpdate = async (req: any, newStatus: string) => {
     try {
-      await updateDoc(doc(db, "transactions", req.id), { status: newStatus });
+      let rejectReason = "";
+      if (newStatus === "rejected") {
+        rejectReason = window.prompt("Please enter the reason for rejection:") || "";
+        if (!rejectReason) {
+          useUIStore.getState().addToast("Rejection reason is required.", "error");
+          return;
+        }
+      }
+
+      const updateData: any = { status: newStatus };
+      if (newStatus === "rejected") {
+        updateData.rejectReason = rejectReason;
+      }
+
+      await updateDoc(doc(db, "transactions", req.id), updateData);
+      
       if (req.type === "deposit" && newStatus === "completed" && req.userId) {
+        await updateDoc(doc(db, "users", req.userId), {
+          vaBalance: increment(Number(req.amount || 0))
+        });
+      } else if (req.type === "withdraw" && newStatus === "rejected" && req.userId) {
+        // Refund the withdrawn amount
         await updateDoc(doc(db, "users", req.userId), {
           vaBalance: increment(Number(req.amount || 0))
         });
@@ -1660,24 +1810,60 @@ function AdminRequests() {
   );
 }
 
-function CoinValuesEditor({ onClose, onSave, initialValues }: any) {
-  const [activeTab, setActiveTab] = useState("deposit");
-  const [values, setValues] = useState<any>(initialValues || {});
+function CoinValuesEditor({ onClose, onSave }: any) {
+  const [activeTab, setActiveTab] = useState("bdt");
+  const [values, setValues] = useState<any>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getDoc(doc(db, "settings", "coin_values")).then(snap => {
+      if (snap.exists()) setValues(snap.data());
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) return <div>Loading...</div>;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between">
         <h2 className="text-xl font-bold">Edit Coin Values</h2>
         <button onClick={onClose}><X/></button>
       </div>
-      <div>
-        <label className="block text-sm mb-1">1 VA to TK (bKash/Nagad)</label>
-        <input type="number" step="any" value={values.bKash || 1} onChange={e => setValues({...values, bKash: parseFloat(e.target.value)})} className="w-full bg-[#151A23] border border-white/10 p-2 rounded" />
+
+      <div className="flex space-x-2 border-b border-white/10 pb-2">
+        <button onClick={() => setActiveTab('bdt')} className={`px-4 py-2 text-sm font-bold rounded ${activeTab === 'bdt' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>BDT Values (৳)</button>
+        <button onClick={() => setActiveTab('crypto')} className={`px-4 py-2 text-sm font-bold rounded ${activeTab === 'crypto' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>Crypto Values ($)</button>
       </div>
-      <button onClick={() => onSave(values)} className="w-full py-2 bg-blue-600 rounded">Save</button>
+
+      {activeTab === 'bdt' && (
+        <div className="space-y-4 animate-in fade-in">
+           <div>
+             <label className="block text-sm mb-1 text-gray-400">1 VA to TK (bKash/Nagad/Rocket etc)</label>
+             <div className="flex items-center space-x-2">
+               <span className="text-xl font-bold">৳</span>
+               <input type="number" step="any" value={values.bdtRate || values.bKash || 1} onChange={e => setValues({...values, bdtRate: parseFloat(e.target.value) || 0, bKash: parseFloat(e.target.value) || 0})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl focus:border-blue-500 focus:outline-none" />
+             </div>
+           </div>
+        </div>
+      )}
+
+      {activeTab === 'crypto' && (
+        <div className="space-y-4 animate-in fade-in">
+           <div>
+             <label className="block text-sm mb-1 text-gray-400">1 VA to USD (Crypto)</label>
+             <div className="flex items-center space-x-2">
+               <span className="text-xl font-bold">$</span>
+               <input type="number" step="any" value={values.cryptoRate || 1} onChange={e => setValues({...values, cryptoRate: parseFloat(e.target.value) || 0})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl focus:border-blue-500 focus:outline-none" />
+             </div>
+           </div>
+        </div>
+      )}
+
+      <button onClick={() => onSave(values)} className="w-full py-3 bg-blue-600 rounded-xl font-bold uppercase tracking-wider text-sm transition-all shadow-lg hover:bg-blue-700">Save Changes</button>
     </div>
   );
 }
-
 function AdsRewardsEditor({ onClose, onSave, initialValues }: any) {
   const [values, setValues] = useState<any>(initialValues || { normal: {}, vip: {} });
   return (
@@ -1688,7 +1874,7 @@ function AdsRewardsEditor({ onClose, onSave, initialValues }: any) {
       </div>
       <div>
         <label className="block text-sm mb-1">Normal Ads Limit</label>
-        <input type="number" value={values.normal?.adsLimit || 10} onChange={e => setValues({...values, normal: {...values.normal, adsLimit: parseInt(e.target.value)}})} className="w-full bg-[#151A23] border border-white/10 p-2 rounded" />
+        <input type="number" value={values.normal?.adsLimit || 10} onChange={e => setValues({...values, normal: {...values.normal, adsLimit: parseInt(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-2 rounded" />
       </div>
       <button onClick={() => onSave(values)} className="w-full py-2 bg-blue-600 rounded">Save</button>
     </div>

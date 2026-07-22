@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import { collection, query, where, getDocs, limit, orderBy } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { formatNumber, formatShortNumber } from "../lib/utils";
 
 export default function Profile() {
   const user = useAuthStore((state) => state.user);
@@ -192,7 +193,7 @@ export default function Profile() {
                 Total Balance
               </p>
               <p className="font-black text-2xl text-[#2C334A]">
-                {(displayUser.vaBalance || 0).toLocaleString()}{" "}
+                {formatShortNumber(displayUser.vaBalance || 0)}{" "}
                 <span className="text-sm font-bold text-gray-400">VA</span>
               </p>
             </div>

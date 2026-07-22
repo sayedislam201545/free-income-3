@@ -53,7 +53,7 @@ export default function Language() {
       {/* Header */}
       <header className="flex items-center mb-8 text-[#2C334A] pt-2">
         <PremiumBackButton fallbackPath="/profile" className="scale-90 origin-left mr-4" />
-        <h1 className="text-xl font-bold">Leagues</h1>
+        <h1 className="text-xl font-bold">Language</h1>
       </header>
 
       <div className="flex-1 overflow-y-auto pb-8 hide-scrollbar">

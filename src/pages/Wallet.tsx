@@ -6,6 +6,7 @@ import { useAuthStore } from "../store/useAuthStore";
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import AnimatedCounter from "../components/AnimatedCounter";
+import { formatNumber } from "../lib/utils";
 
 export default function Wallet() {
   const featureToggles = useFeatureToggles();
@@ -214,7 +215,7 @@ export default function Wallet() {
         method: selectedMethod.name,
         amount: numAmount,
         currency: 'VA',
-        fiatAmount: calculateValue(dwAmount, selectedMethod.id),
+        fiatAmount: calculateValue(dwAmount, selectedMethod).value,
         status: 'pending',
         timestamp: new Date().toISOString(),
         txId: dwTxId || '',
@@ -245,11 +246,18 @@ export default function Wallet() {
     setIsSubmitting(false);
   };
 
-  const calculateValue = (coins: string, methodId: string) => {
+  const calculateValue = (coins: string, method: any) => {
     const num = parseFloat(coins);
-    if (isNaN(num) || num <= 0) return '0.00';
-    const rate = coinRates[methodId] || 1;
-    return (num * rate).toFixed(2);
+    if (isNaN(num) || num <= 0) return { value: '0.00', symbol: method?.isCrypto ? '$' : '৳', currency: method?.isCrypto ? 'USD' : 'BDT' };
+    
+    const bdtRate = coinRates?.bdtRate || coinRates?.bKash || 1;
+    const cryptoRate = coinRates?.cryptoRate || 1;
+
+    if (method?.isCrypto) {
+       return { value: (num * cryptoRate).toFixed(2), symbol: '$', currency: 'USD' };
+    } else {
+       return { value: (num * bdtRate).toFixed(2), symbol: '৳', currency: 'BDT' };
+    }
   };
 
   return (
@@ -345,7 +353,7 @@ export default function Wallet() {
                 />
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-end pointer-events-none">
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">You Will {tab === 'deposit' ? 'Pay' : 'Receive'}</span>
-                  <span className="text-sm font-black text-blue-600">{calculateValue(dwAmount, selectedMethod.id)} <span className="text-[10px]">{selectedMethod.name === 'Bkash' || selectedMethod.name === 'Nagad' || selectedMethod.name === 'Roket' ? 'BDT' : selectedMethod.name}</span></span>
+                  <span className="text-sm font-black text-blue-600">{calculateValue(dwAmount, selectedMethod).symbol}{calculateValue(dwAmount, selectedMethod).value} <span className="text-[10px]">{calculateValue(dwAmount, selectedMethod).currency}</span></span>
                 </div>
               </div>
             </div>

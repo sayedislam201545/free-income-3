@@ -4,17 +4,11 @@ let code = fs.readFileSync('src/pages/Admin.tsx', 'utf8');
 const startIdx = code.indexOf('function AdminUsers() {');
 const endIdx = code.indexOf('function AdminAchievements() {');
 
-if (startIdx === -1 || endIdx === -1) {
-  console.log("Could not find AdminUsers or AdminAchievements");
-  process.exit(1);
-}
-
 let newAdminUsers = `function AdminUsers() {
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [newBalance, setNewBalance] = useState<string>("");
-  const [balanceOperation, setBalanceOperation] = useState<"" | "add" | "subtract">("");
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "users"), (snap) => {
@@ -43,19 +37,15 @@ let newAdminUsers = `function AdminUsers() {
     }
   }
 
-  const handleUpdateBalance = async () => {
-    if (!selectedUser || !balanceOperation) return;
+  const handleUpdateBalance = async (type: 'add' | 'subtract') => {
+    if (!selectedUser) return;
     try {
       const parsed = parseFloat(newBalance);
-      if (isNaN(parsed) || parsed <= 0) {
-        useUIStore.getState().addToast("Enter a valid amount", "error");
-        return;
-      }
-      const amount = balanceOperation === 'add' ? parsed : -parsed;
+      if (isNaN(parsed) || parsed <= 0) return;
+      const amount = type === 'add' ? parsed : -parsed;
       await updateDoc(doc(db, "users", selectedUser.id), { vaBalance: increment(amount) });
-      useUIStore.getState().addToast(\`Balance \${balanceOperation === 'add' ? 'increased' : 'decreased'} by \${parsed}\`);
+      useUIStore.getState().addToast(\`Balance \${type === 'add' ? 'increased' : 'decreased'} by \${parsed}\`);
       setNewBalance("");
-      setBalanceOperation("");
     } catch(e) {
       useUIStore.getState().addToast("Error updating balance", "error");
     }
@@ -73,13 +63,8 @@ let newAdminUsers = `function AdminUsers() {
     }
   }
 
-  const getFullName = (u: any) => {
-    const name = \`\${u.firstName || ''} \${u.lastName || ''}\`.trim();
-    return name || u.name || "Unknown";
-  };
-
   const filtered = users.filter(u => 
-    getFullName(u).toLowerCase().includes(search.toLowerCase()) || 
+    (u.name || "").toLowerCase().includes(search.toLowerCase()) || 
     (u.telegramId || "").toString().includes(search) ||
     (u.username || "").toLowerCase().includes(search.toLowerCase())
   );
@@ -96,18 +81,11 @@ let newAdminUsers = `function AdminUsers() {
     }
   }, [users]);
 
-  const formatShortNumber = (num: number) => {
-    if (typeof num !== 'number' || isNaN(num)) return '0.00';
-    if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\\.0$/, '') + 'm';
-    if (num >= 10000) return (num / 1000).toFixed(1).replace(/\\.0$/, '') + 'k';
-    return num.toFixed(2);
-  };
-
   if (selectedUser) {
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 pb-10">
         <div className="flex items-center space-x-3 mb-6">
-          <button onClick={() => { setSelectedUser(null); setBalanceOperation(""); setNewBalance(""); }} className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors">
+          <button onClick={() => setSelectedUser(null)} className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors">
             <X className="w-5 h-5 text-gray-400" />
           </button>
           <h2 className="text-xl font-bold">User Details</h2>
@@ -119,13 +97,13 @@ let newAdminUsers = `function AdminUsers() {
           <div className="relative flex flex-col items-center sm:flex-row sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
             <div className="w-24 h-24 rounded-full bg-[#0B0E14] border-4 border-[#1C2331] shadow-xl overflow-hidden shrink-0 flex items-center justify-center">
               {selectedUser.photoUrl ? (
-                <img src={selectedUser.photoUrl} alt="User" className="w-full h-full object-cover" />
+                <img src={selectedUser.photoUrl} alt={selectedUser.name} className="w-full h-full object-cover" />
               ) : (
                 <User className="w-10 h-10 text-gray-500" />
               )}
             </div>
             <div className="flex-1 text-center sm:text-left space-y-2">
-              <h3 className="text-2xl font-black text-white">{getFullName(selectedUser)}</h3>
+              <h3 className="text-2xl font-black text-white">{selectedUser.name || "Unknown"}</h3>
               <p className="text-gray-400 text-sm font-medium">@{selectedUser.username || "no_username"}</p>
               <div className="inline-flex items-center space-x-2 bg-black/40 px-3 py-1.5 rounded-lg border border-white/5">
                 <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">ID</span>
@@ -149,7 +127,7 @@ let newAdminUsers = `function AdminUsers() {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-[#0B0E14] border border-white/5 p-4 rounded-xl flex flex-col items-center justify-center text-center">
               <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-1">Balance</span>
-              <span className="text-xl font-black text-green-400">{formatShortNumber(selectedUser.vaBalance || 0)} VA</span>
+              <span className="text-xl font-black text-green-400">{selectedUser.vaBalance?.toFixed(2) || 0} VA</span>
             </div>
             <div className="bg-[#0B0E14] border border-white/5 p-4 rounded-xl flex flex-col items-center justify-center text-center">
               <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-1">Total Referrals</span>
@@ -192,36 +170,24 @@ let newAdminUsers = `function AdminUsers() {
               </select>
             </div>
 
-            <div className="pt-4 border-t border-white/5">
-              <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Coin Balance Update (+ / -)</label>
-              <select
-                value={balanceOperation}
-                onChange={(e) => { setBalanceOperation(e.target.value as any); setNewBalance(""); }}
-                className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white font-medium focus:outline-none focus:border-blue-500 transition-colors mb-3"
-              >
-                <option value="">Select Operation...</option>
-                <option value="add">Add Coins (+)</option>
-                <option value="subtract">Subtract Coins (-)</option>
-              </select>
-              
-              {balanceOperation && (
-                <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                  <input 
-                    type="number" 
-                    step="any"
-                    value={newBalance}
-                    onChange={(e) => setNewBalance(e.target.value)}
-                    placeholder="Enter amount to update..."
-                    className="w-full bg-[#0B0E14] border border-blue-500/30 rounded-xl p-3 text-white font-medium focus:outline-none focus:border-blue-500 transition-colors"
-                  />
-                  <button 
-                    onClick={handleUpdateBalance} 
-                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-900/20"
-                  >
-                    Update Balance
-                  </button>
-                </div>
-              )}
+            <div className="pt-2 border-t border-white/5">
+              <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider mt-2">Coin Balance (+ / -)</label>
+              <div className="flex space-x-2">
+                <input 
+                  type="number" 
+                  step="any"
+                  value={newBalance}
+                  onChange={(e) => setNewBalance(e.target.value)}
+                  placeholder="Amount"
+                  className="flex-1 bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white font-medium focus:outline-none focus:border-blue-500 transition-colors"
+                />
+                <button onClick={() => handleUpdateBalance('add')} className="px-4 bg-green-600 hover:bg-green-700 text-white font-black rounded-xl transition-colors shadow-lg shadow-green-900/20">
+                  <Plus className="w-5 h-5" />
+                </button>
+                <button onClick={() => handleUpdateBalance('subtract')} className="px-4 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl transition-colors shadow-lg shadow-red-900/20">
+                  <Trash2 className="w-5 h-5" /> {/* Just using an icon or minus */}
+                </button>
+              </div>
             </div>
 
             <div className="pt-4 border-t border-white/5 grid grid-cols-2 gap-4">
@@ -270,7 +236,7 @@ let newAdminUsers = `function AdminUsers() {
                   {u.photoUrl ? <img src={u.photoUrl} alt="" className="w-full h-full object-cover"/> : <User className="w-5 h-5 text-gray-500" />}
                </div>
                <div className="min-w-0">
-                 <h3 className="font-bold text-white truncate text-base">{getFullName(u)}</h3>
+                 <h3 className="font-bold text-white truncate text-base">{u.name || "Unknown"}</h3>
                  <p className="text-xs text-gray-400 truncate">@{u.username || "no_username"}</p>
                  {u.status === 'banned' && <span className="inline-block mt-1 bg-red-500/20 text-red-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Banned</span>}
                </div>
@@ -297,4 +263,4 @@ let newAdminUsers = `function AdminUsers() {
 
 code = code.substring(0, startIdx) + newAdminUsers + '\n\n' + code.substring(endIdx);
 fs.writeFileSync('src/pages/Admin.tsx', code);
-console.log("AdminUsers updated");
+console.log("AdminUsers successfully updated to 3D mobile-friendly design.");

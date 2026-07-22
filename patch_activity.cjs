@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+const fs = require('fs');
+
+let code = `import { useState, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
@@ -66,7 +68,7 @@ export default function Activity() {
                   <p className="text-xs text-gray-500 mt-1">{new Date(act.date).toLocaleString()}</p>
                 </div>
                 <div className="text-right">
-                  <p className={`font-bold ${(act.type === "deposit" || act.type === "bonus") ? "text-green-500" : "text-red-500"}`}>
+                  <p className={\`font-bold \${(act.type === "deposit" || act.type === "bonus") ? "text-green-500" : "text-red-500"}\`}>
                     {(act.type === "deposit" || act.type === "bonus") ? "+" : "-"}{formatNumber(act.amount)} VA
                   </p>
                   <div className="flex items-center justify-end space-x-1 mt-1">
@@ -94,3 +96,6 @@ export default function Activity() {
     </div>
   );
 }
+`;
+fs.writeFileSync('src/pages/Activity.tsx', code);
+console.log("Activity updated");

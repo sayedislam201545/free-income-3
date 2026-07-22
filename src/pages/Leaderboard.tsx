@@ -2,6 +2,7 @@ import { Trophy, Search, Users, Activity, Medal, Star } from "lucide-react";
 import { useState, useEffect } from "react";
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { formatShortNumber } from "../lib/utils";
 
 export default function Leaderboard() {
   const [listUsers, setListUsers] = useState<any[]>([]);
@@ -171,7 +172,7 @@ export default function Leaderboard() {
 
               {/* Score */}
               <div className="shrink-0 flex items-center">
-                <span className="font-bold text-gray-900 font-mono text-sm mr-1">{user.score}</span>
+                <span className="font-bold text-gray-900 font-mono text-sm mr-1">{activeTab === 'refer' ? user.score : formatShortNumber(user.score)}</span>
                 <span className="text-[10px] text-gray-400 font-bold tracking-wider">{activeTab === 'refer' ? 'refs' : 'VA'}</span>
               </div>
             </div>

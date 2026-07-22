@@ -4,11 +4,6 @@ let code = fs.readFileSync('src/pages/Admin.tsx', 'utf8');
 const startIdx = code.indexOf('function AdminUsers() {');
 const endIdx = code.indexOf('function AdminAchievements() {');
 
-if (startIdx === -1 || endIdx === -1) {
-  console.log("Could not find AdminUsers or AdminAchievements");
-  process.exit(1);
-}
-
 let newAdminUsers = `function AdminUsers() {
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -52,7 +47,7 @@ let newAdminUsers = `function AdminUsers() {
         return;
       }
       const amount = balanceOperation === 'add' ? parsed : -parsed;
-      await updateDoc(doc(db, "users", selectedUser.id), { vaBalance: increment(amount) });
+      await updateDoc(doc(db, "users", selectedUser.id), { vaBalance: (selectedUser.vaBalance || 0) + amount });
       useUIStore.getState().addToast(\`Balance \${balanceOperation === 'add' ? 'increased' : 'decreased'} by \${parsed}\`);
       setNewBalance("");
       setBalanceOperation("");
@@ -74,6 +69,7 @@ let newAdminUsers = `function AdminUsers() {
   }
 
   const getFullName = (u: any) => {
+    if (u.fullName) return u.fullName;
     const name = \`\${u.firstName || ''} \${u.lastName || ''}\`.trim();
     return name || u.name || "Unknown";
   };
@@ -98,7 +94,7 @@ let newAdminUsers = `function AdminUsers() {
 
   const formatShortNumber = (num: number) => {
     if (typeof num !== 'number' || isNaN(num)) return '0.00';
-    if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\\.0$/, '') + 'm';
+    if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\\.0$/, '') + 'M';
     if (num >= 10000) return (num / 1000).toFixed(1).replace(/\\.0$/, '') + 'k';
     return num.toFixed(2);
   };
@@ -297,4 +293,4 @@ let newAdminUsers = `function AdminUsers() {
 
 code = code.substring(0, startIdx) + newAdminUsers + '\n\n' + code.substring(endIdx);
 fs.writeFileSync('src/pages/Admin.tsx', code);
-console.log("AdminUsers updated");
+console.log("Admin Users fixed");

@@ -1,24 +1,28 @@
 const fs = require('fs');
+let code = fs.readFileSync('src/pages/Admin.tsx', 'utf8');
 
-const adminSettingsCode = `
-function AdminSettings() {
+const start = code.indexOf('function AdminSettings() {');
+const end = code.indexOf('function AdminVIP() {');
+
+if (start === -1 || end === -1) {
+    console.error("Could not find bounds");
+    process.exit(1);
+}
+
+const safeSettings = `function AdminSettings() {
   const [editing, setEditing] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   
   // Data States
-  const [botSettingData, setBotSettingData] = useState<any>({ botUsername: "", botToken: "", botHostingLink: "", miniAppUrl: "", paymentChannelId: "", othersChannelId: "" });
-  const [developerData, setDeveloperData] = useState<any>({ name: "", role: "", whatsapp: "", image: "" });
+  const [botSettingData, setBotSettingData] = useState<any>({ botUsername: "", botToken: "", botHostingLink: "", miniAppUrl: "", paymentChannelId: "", othersChannelId: "", imgbbApi: "" });
+  const [developerData, setDeveloperData] = useState<any>({ name: "", role: "", whatsapp: "", telegram: "", image: "", description: "" });
   const [supportAgents, setSupportAgents] = useState<any[]>([]);
   const [vipPlans, setVipPlans] = useState<any[]>([]);
   const [adsConfig, setAdsConfig] = useState<any>({});
   const [rewardsConfig, setRewardsConfig] = useState<any>({});
-  const [coinValues, setCoinValues] = useState<any>({});
-  const [adsBoxes, setAdsBoxes] = useState<any[]>([]);
-
-  // Sub-tabs for internal editors
-  const [adminTab, setAdminTab] = useState<"add" | "added">("added");
+  
+  const [adminTab, setAdminTab] = useState<"added" | "add">("added");
   const [editSupportId, setEditSupportId] = useState<string | null>(null);
-  const [editVipId, setEditVipId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -29,29 +33,23 @@ function AdminSettings() {
         const devSnap = await getDoc(doc(db, "settings", "developer_profile"));
         if (devSnap.exists()) setDeveloperData(devSnap.data());
 
-        const supSnap = await getDoc(doc(db, "settings", "support"));
-        if (supSnap.exists()) setSupportAgents(supSnap.data().agents || []);
+        const supportSnap = await getDoc(doc(db, "settings", "support"));
+        if (supportSnap.exists() && supportSnap.data().agents) setSupportAgents(supportSnap.data().agents);
 
         const vipSnap = await getDoc(doc(db, "settings", "vip_plans"));
-        if (vipSnap.exists()) setVipPlans(vipSnap.data().plans || []);
+        if (vipSnap.exists() && vipSnap.data().plans) setVipPlans(vipSnap.data().plans);
 
-        const adsSnap = await getDoc(doc(db, "settings", "ads_config"));
-        if (adsSnap.exists()) setAdsConfig(adsSnap.data());
-
-        const rewSnap = await getDoc(doc(db, "settings", "rewards_config"));
-        if (rewSnap.exists()) setRewardsConfig(rewSnap.data());
-
-        const cvSnap = await getDoc(doc(db, "settings", "coin_values"));
-        if (cvSnap.exists()) setCoinValues(cvSnap.data());
-        
-        const boxesSnap = await getDoc(doc(db, "settings", "ads_boxes"));
-        if (boxesSnap.exists()) setAdsBoxes(boxesSnap.data().boxes || []);
-      } catch (err) {
-        console.warn("Failed to fetch settings", err);
+        const adsSnap = await getDoc(doc(db, "settings", "ads_rewards_config"));
+        if (adsSnap.exists()) {
+          setAdsConfig(adsSnap.data().ads || {});
+          setRewardsConfig(adsSnap.data().rewards || {});
+        }
+      } catch (e) {
+        console.error("Failed to load settings:", e);
       }
     };
     fetchSettings();
-  }, []);
+  }, [editing]);
 
   const handleEdit = async (key: string) => {
     setEditing(key);
@@ -88,85 +86,23 @@ function AdminSettings() {
     if (editing === "feature_toggles") {
       return <FeatureTogglesEditor onClose={() => setEditing(null)} onSave={async (vals: any) => {
         await setDoc(doc(db, "settings", "feature_toggles"), vals, { merge: true });
-        useUIStore.getState().addToast("Saved Toggles!");
+        useUIStore.getState().addToast("Saved Toggles");
         setEditing(null);
       }} />;
     }
-    
     if (editing === "ads_rewards_config") {
-      return (
-        <AdsRewardsEditor
-          onClose={() => setEditing(null)}
-          onSave={async (adsConf: any, rewConf: any, boxes: any) => {
-            try {
-              await setDoc(doc(db, "settings", "ads_config"), adsConf, { merge: true });
-              await setDoc(doc(db, "settings", "rewards_config"), rewConf, { merge: true });
-              await setDoc(doc(db, "settings", "ads_boxes"), { boxes }, { merge: true });
-              useUIStore.getState().addToast("Saved Ads & Rewards Settings!");
-              setEditing(null);
-            } catch (e) {
-              useUIStore.getState().addToast("Failed to save", "error");
-            }
-          }}
-          initialAdsConfig={adsConfig}
-          initialRewardsConfig={rewardsConfig}
-          initialAdsBoxes={adsBoxes}
-        />
-      );
+      return <AdsRewardsEditor onClose={() => setEditing(null)} initialAdsConfig={adsConfig} initialRewardsConfig={rewardsConfig} onSave={async (vals: any) => {
+        await setDoc(doc(db, "settings", "ads_rewards_config"), vals, { merge: true });
+        useUIStore.getState().addToast("Saved Config");
+        setEditing(null);
+      }} />;
     }
-    
     if (editing === "coin_values") {
-      return (
-        <CoinValuesEditor
-          onClose={() => setEditing(null)}
-          onSave={async (values: any) => {
-            await setDoc(doc(db, "settings", "coin_values"), values);
-            useUIStore.getState().addToast("Saved Coin Values!");
-            setEditing(null);
-          }}
-          initialValues={coinValues}
-        />
-      );
-    }
-
-    if (editing === "bot_setting") {
-      return (
-        <div className="space-y-6 max-w-4xl animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center space-x-4 mb-6">
-            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
-            <h2 className="text-xl font-bold">Bot Setting</h2>
-          </div>
-          <div className="bg-[#151A23] rounded-2xl p-6 border border-white/5 shadow-xl space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Bot Username</label>
-              <input type="text" value={botSettingData.botUsername || ""} onChange={(e) => setBotSettingData({...botSettingData, botUsername: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="e.g. MySuperBot" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Bot Token</label>
-              <input type="text" value={botSettingData.botToken || ""} onChange={(e) => setBotSettingData({...botSettingData, botToken: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="123456:ABC-DEF..." />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Mini App Link</label>
-              <input type="text" value={botSettingData.miniAppUrl || ""} onChange={(e) => setBotSettingData({...botSettingData, miniAppUrl: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="https://t.me/MyBot/app" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Hosting Link</label>
-              <input type="text" value={botSettingData.botHostingLink || ""} onChange={(e) => setBotSettingData({...botSettingData, botHostingLink: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="https://my-app.com" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Payment Channel ID</label>
-              <input type="text" value={botSettingData.paymentChannelId || ""} onChange={(e) => setBotSettingData({...botSettingData, paymentChannelId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="@my_payment_channel or -100xxxxx" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 mb-1">Adars (Others) Message Channel ID</label>
-              <input type="text" value={botSettingData.othersChannelId || ""} onChange={(e) => setBotSettingData({...botSettingData, othersChannelId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" placeholder="@my_updates_channel or -100xxxxx" />
-            </div>
-            <button onClick={() => handleSave(false)} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg mt-6">
-              Save Settings
-            </button>
-          </div>
-        </div>
-      );
+      return <CoinValuesEditor onClose={() => setEditing(null)} onSave={async (vals: any) => {
+        await setDoc(doc(db, "settings", "coin_values"), vals, { merge: true });
+        useUIStore.getState().addToast("Saved Coin Values");
+        setEditing(null);
+      }} />;
     }
 
     if (editing === "developer_profile") {
@@ -178,10 +114,46 @@ function AdminSettings() {
           </div>
           <div className="bg-[#151A23] rounded-2xl p-6 border border-white/5 space-y-4">
              <div><label className="block text-xs font-bold text-gray-400 mb-1">Name</label><input type="text" value={developerData.name || ""} onChange={(e) => setDeveloperData({...developerData, name: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
-             <div><label className="block text-xs font-bold text-gray-400 mb-1">Role</label><input type="text" value={developerData.role || ""} onChange={(e) => setDeveloperData({...developerData, role: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
-             <div><label className="block text-xs font-bold text-gray-400 mb-1">WhatsApp URL</label><input type="text" value={developerData.whatsapp || ""} onChange={(e) => setDeveloperData({...developerData, whatsapp: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+             <div><label className="block text-xs font-bold text-gray-400 mb-1">Role Title</label><input type="text" value={developerData.role || ""} onChange={(e) => setDeveloperData({...developerData, role: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+             <div><label className="block text-xs font-bold text-gray-400 mb-1">Photo URL</label><input type="text" value={developerData.image || ""} onChange={(e) => setDeveloperData({...developerData, image: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" placeholder="https://..." /></div>
+             <div><label className="block text-xs font-bold text-gray-400 mb-1">Bio / Description</label><textarea value={developerData.description || ""} onChange={(e) => setDeveloperData({...developerData, description: e.target.value})} className="w-full h-24 bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+             <div><label className="block text-xs font-bold text-gray-400 mb-1">WhatsApp URL</label><input type="text" value={developerData.whatsapp || ""} onChange={(e) => setDeveloperData({...developerData, whatsapp: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" placeholder="https://wa.me/..." /></div>
+             <div><label className="block text-xs font-bold text-gray-400 mb-1">Telegram URL</label><input type="text" value={developerData.telegram || ""} onChange={(e) => setDeveloperData({...developerData, telegram: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" placeholder="https://t.me/..." /></div>
           </div>
-          <button onClick={() => handleSave(false)} className="w-full mt-6 bg-blue-600 text-white font-bold py-3 rounded-xl">Save Developer Profile</button>
+          <button onClick={() => handleSave(false)} className="w-full mt-6 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors">Save Developer Profile</button>
+        </div>
+      );
+    }
+
+    if (editing === "bot_setting") {
+      return (
+        <div className="space-y-6 max-w-4xl animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center space-x-3 mb-6">
+            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+            <h2 className="text-xl font-bold">Bot Settings</h2>
+          </div>
+          <div className="bg-[#151A23] rounded-2xl p-6 border border-white/5 space-y-4">
+             <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Imgbb API Key (For Task Proofs)</label>
+              <input type="text" value={botSettingData.imgbbApi || ""} onChange={(e) => setBotSettingData({...botSettingData, imgbbApi: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white mb-4" placeholder="e.g. 1234567890abcdef..." />
+              <label className="block text-xs font-bold text-gray-400 mb-1">Bot Username</label>
+              <input type="text" value={botSettingData.botUsername || ""} onChange={(e) => setBotSettingData({...botSettingData, botUsername: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" />
+             </div>
+             <div><label className="block text-xs font-bold text-gray-400 mb-1">Bot Token</label><input type="password" value={botSettingData.botToken || ""} onChange={(e) => setBotSettingData({...botSettingData, botToken: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" /></div>
+             <div><label className="block text-xs font-bold text-gray-400 mb-1">Payment Channel ID</label><input type="text" value={botSettingData.paymentChannelId || ""} onChange={(e) => setBotSettingData({...botSettingData, paymentChannelId: e.target.value})} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-sm text-white" /></div>
+          </div>
+          <button onClick={() => handleSave(false)} className="w-full mt-6 bg-blue-600 text-white font-bold py-3 rounded-xl">Save Settings</button>
+        </div>
+      );
+    }
+
+    if (editing === "vip_plan") {
+      return (
+        <div className="space-y-6 max-w-4xl animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center space-x-4 mb-6">
+            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+          </div>
+          <AdminVIP />
         </div>
       );
     }
@@ -230,52 +202,7 @@ function AdminSettings() {
         </div>
       );
     }
-    
-    if (editing === "vip_plan") {
-      return (
-        <div className="space-y-6 max-w-4xl animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center space-x-3 mb-6">
-            <button onClick={() => setEditing(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
-            <h2 className="text-xl font-bold">VIP Plan Management</h2>
-          </div>
-          <div className="flex space-x-2 bg-[#1C2331] p-1.5 rounded-xl mb-6">
-            <button onClick={() => setAdminTab("added")} className={\`flex-1 py-2 rounded-lg font-bold transition-all \${adminTab === "added" ? "bg-purple-600 text-white" : "text-gray-400"}\`}>VIP Plans</button>
-            <button onClick={() => { setAdminTab("add"); setVipPlans([...vipPlans, { id: Date.now().toString(), title: "", price: "", originalPrice: "", description: "", validDays: 30, discount: "" }]); setEditVipId(Date.now()); }} className={\`flex-1 py-2 rounded-lg font-bold transition-all \${adminTab === "add" ? "bg-purple-600 text-white" : "text-gray-400"}\`}>Add New</button>
-          </div>
-          {adminTab === "added" && (
-            <div className="grid grid-cols-1 gap-4">
-              {vipPlans.filter(p => p.title.trim() !== "").map(plan => (
-                <div key={plan.id} className="bg-[#151A23] border border-white/10 rounded-xl p-4 flex justify-between items-center">
-                  <div><p className="font-bold text-white">{plan.title}</p><p className="text-xs text-gray-400">Price: {plan.price} BDT</p></div>
-                  <div className="flex space-x-2">
-                    <button onClick={() => { setEditVipId(plan.id); setAdminTab("add"); }} className="p-2 bg-blue-500/20 text-blue-400 rounded-lg"><Edit3 className="w-4 h-4" /></button>
-                    <button onClick={() => { setVipPlans(vipPlans.filter(p => p.id !== plan.id)); setTimeout(() => handleSave(true), 100); }} className="p-2 bg-red-500/20 text-red-400 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {adminTab === "add" && (
-             <div className="space-y-6">
-              {vipPlans.filter(p => p.id === editVipId).map(plan => (
-                <div key={plan.id} className="bg-[#151A23] border border-white/10 rounded-xl p-6">
-                  <div className="space-y-4">
-                    <div><label className="text-xs text-gray-400">Title</label><input type="text" value={plan.title} onChange={(e) => setVipPlans(vipPlans.map(p => p.id === plan.id ? {...p, title: e.target.value} : p))} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
-                    <div><label className="text-xs text-gray-400">Price</label><input type="text" value={plan.price} onChange={(e) => setVipPlans(vipPlans.map(p => p.id === plan.id ? {...p, price: e.target.value} : p))} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
-                  </div>
-                  <div className="flex space-x-4 mt-6">
-                    <button onClick={() => { handleSave(true); setAdminTab("added"); }} className="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl">Save Plan</button>
-                    <button onClick={() => { setVipPlans(vipPlans.filter(p => p.title.trim() !== "")); setAdminTab("added"); }} className="flex-1 bg-gray-600 text-white font-bold py-3 rounded-xl">Cancel</button>
-                  </div>
-                </div>
-              ))}
-             </div>
-          )}
-        </div>
-      );
-    }
-    
-    // Fallback for rich text editors (Privacy Policy, Terms, etc.)
+
     return (
       <div className="space-y-6 max-w-4xl">
         <div className="flex items-center justify-between mb-6">
@@ -290,7 +217,6 @@ function AdminSettings() {
     );
   }
 
-  // Base list render when not editing
   return (
     <div className="space-y-6 max-w-4xl">
       <h2 className="text-2xl font-bold mb-6 text-white tracking-tight">Admin Settings</h2>
@@ -321,17 +247,7 @@ function AdminSettings() {
 }
 `;
 
-let code = fs.readFileSync('src/pages/Admin.tsx', 'utf8');
+code = code.substring(0, start) + safeSettings + '\n\n' + code.substring(end);
+fs.writeFileSync('src/pages/Admin.tsx', code);
+console.log("AdminSettings perfectly rewritten.");
 
-const startIdx = code.indexOf('function AdminSettings() {');
-// Wait, AdminSubmissions is right below it? Let me find what's right below it.
-// I will just slice up to AdminSubmissions.
-const endIdx = code.indexOf('function AdminSubmissions() {');
-
-if (startIdx !== -1 && endIdx !== -1) {
-    code = code.substring(0, startIdx) + adminSettingsCode + '\n' + code.substring(endIdx);
-    fs.writeFileSync('src/pages/Admin.tsx', code); 
-    console.log("Successfully rebuilt AdminSettings and saved to Admin.tsx");
-} else {
-    console.log("Could not find start or end index!");
-}
