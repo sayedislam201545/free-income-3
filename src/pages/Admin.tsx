@@ -1425,14 +1425,6 @@ function AdminSettings() {
         setEditing(null);
       }} />;
     }
-    if (editing === "coin_values") {
-      return <CoinValuesEditor onClose={() => setEditing(null)} onSave={async (vals: any) => {
-        await setDoc(doc(db, "settings", "coin_values"), vals, { merge: true });
-        useUIStore.getState().addToast("Saved Coin Values");
-        setEditing(null);
-      }} />;
-    }
-
     if (editing === "developer_profile") {
       return (
         <div className="space-y-6 max-w-4xl animate-in fade-in slide-in-from-bottom-4">
@@ -1550,7 +1542,6 @@ function AdminSettings() {
       <h2 className="text-2xl font-bold mb-6 text-white tracking-tight">Admin Settings</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[
-          { title: "Coin Values", desc: "Manage coin values", key: "coin_values", icon: <Coins className="w-5 h-5 text-yellow-400" /> },
           { title: "Ad & Rewards", desc: "Manage limits & rewards", key: "ads_rewards_config", icon: <Settings className="w-5 h-5 text-blue-400" /> },
           { title: "Feature Toggles", desc: "Enable/disable features", key: "feature_toggles", icon: <Settings className="w-5 h-5 text-blue-400" /> },
           { title: "Bot Settings", desc: "Tokens & Configs", key: "bot_setting", icon: <Settings className="w-5 h-5 text-blue-400" /> },
@@ -1887,8 +1878,34 @@ function AdsRewardsEditor({ onClose, onSave, initialValues }: any) {
   const [values, setValues] = useState<any>({ 
     normal: initialValues?.normal || {}, 
     vip: initialValues?.vip || {}, 
-    settings: initialValues?.settings || {} 
+    settings: initialValues?.settings || {},
+    coinValues: {}
   });
+
+  useEffect(() => {
+    import("firebase/firestore").then(m => {
+        m.getDoc(m.doc(db, "settings", "coin_values")).then(snap => {
+            if (snap.exists()) {
+                setValues(prev => ({ ...prev, coinValues: snap.data() }));
+            }
+        });
+    });
+  }, []);
+
+  const handleLocalSave = async () => {
+    try {
+        const { getDoc, doc, setDoc } = require("firebase/firestore");
+        // Save Ads config
+        await setDoc(doc(db, "settings", "ads_rewards_config"), { normal: values.normal, vip: values.vip, settings: values.settings }, { merge: true });
+        // Save Coin values
+        await setDoc(doc(db, "settings", "coin_values"), values.coinValues, { merge: true });
+        
+        onClose();
+        useUIStore.getState().addToast("Saved Settings successfully");
+    } catch (e) {
+        useUIStore.getState().addToast("Error saving", "error");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -1898,37 +1915,58 @@ function AdsRewardsEditor({ onClose, onSave, initialValues }: any) {
       </div>
 
       <div className="space-y-4">
-        <div>
-          <label className="block text-sm mb-1 text-gray-400">Normal Ads Daily Limit</label>
-          <input type="number" value={values.normal?.adsLimit ?? 10} onChange={e => setValues({...values, normal: {...values.normal, adsLimit: parseInt(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm mb-1 text-gray-400">Normal Ads Daily Limit</label>
+            <input type="number" value={values.normal?.adsLimit ?? 10} onChange={e => setValues({...values, normal: {...values.normal, adsLimit: parseInt(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+          </div>
+          <div>
+            <label className="block text-sm mb-1 text-gray-400">Normal Ads Reward</label>
+            <input type="number" value={values.normal?.reward ?? 1} onChange={e => setValues({...values, normal: {...values.normal, reward: parseFloat(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+          </div>
         </div>
-        <div>
-          <label className="block text-sm mb-1 text-gray-400">Normal Ads Reward</label>
-          <input type="number" value={values.normal?.reward ?? 1} onChange={e => setValues({...values, normal: {...values.normal, reward: parseFloat(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
-        </div>
-        <div>
-          <label className="block text-sm mb-1 text-yellow-400">VIP Ads Daily Limit</label>
-          <input type="number" value={values.vip?.adsLimit ?? 20} onChange={e => setValues({...values, vip: {...values.vip, adsLimit: parseInt(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
-        </div>
-        <div>
-          <label className="block text-sm mb-1 text-yellow-400">VIP Ads Reward</label>
-          <input type="number" value={values.vip?.reward ?? 2} onChange={e => setValues({...values, vip: {...values.vip, reward: parseFloat(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm mb-1 text-yellow-400">VIP Ads Daily Limit</label>
+            <input type="number" value={values.vip?.adsLimit ?? 20} onChange={e => setValues({...values, vip: {...values.vip, adsLimit: parseInt(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+          </div>
+          <div>
+            <label className="block text-sm mb-1 text-yellow-400">VIP Ads Reward</label>
+            <input type="number" value={values.vip?.reward ?? 2} onChange={e => setValues({...values, vip: {...values.vip, reward: parseFloat(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+          </div>
         </div>
 
         <hr className="border-white/10 my-4" />
         <h3 className="font-bold text-lg">General Settings</h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm mb-1 text-green-400">BDT Values (৳)</label>
+            <input type="number" step="any" value={values.coinValues?.bdtRate || values.coinValues?.bKash || 1} onChange={e => setValues({...values, coinValues: {...values.coinValues, bdtRate: parseFloat(e.target.value) || 0, bKash: parseFloat(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+          </div>
+          <div>
+            <label className="block text-sm mb-1 text-green-400">Crypto Values ($)</label>
+            <input type="number" step="any" value={values.coinValues?.cryptoRate || 1} onChange={e => setValues({...values, coinValues: {...values.coinValues, cryptoRate: parseFloat(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+          </div>
+        </div>
 
-        <div>
-          <label className="block text-sm mb-1 text-blue-400">Ads Timer (Seconds)</label>
-          <input type="number" value={values.settings?.adsSecond ?? 10} onChange={e => setValues({...values, settings: {...values.settings, adsSecond: parseInt(e.target.value) || 0}})} placeholder="e.g. 10" className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
-        </div>
-        <div>
-          <label className="block text-sm mb-1 text-green-400">Daily Bonus Amount</label>
-          <input type="number" value={values.settings?.dailyBonus ?? 100} onChange={e => setValues({...values, settings: {...values.settings, dailyBonus: parseFloat(e.target.value) || 0}})} placeholder="e.g. 100" className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
-        </div>
-        <div>
-          <label className="block text-sm mb-1 text-purple-400">VA Token Mining (Per 24h)</label>
-          <input type="number" value={values.settings?.miningRate ?? 50} onChange={e => setValues({...values, settings: {...values.settings, miningRate: parseFloat(e.target.value) || 0}})} placeholder="e.g. 50" className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm mb-1 text-blue-400">Ads Timer (Seconds)</label>
+            <input type="number" value={values.settings?.adsSecond ?? 10} onChange={e => setValues({...values, settings: {...values.settings, adsSecond: parseInt(e.target.value) || 0}})} placeholder="e.g. 10" className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+          </div>
+          <div>
+            <label className="block text-sm mb-1 text-green-400">Daily Bonus Amount</label>
+            <input type="number" value={values.settings?.dailyBonus ?? 100} onChange={e => setValues({...values, settings: {...values.settings, dailyBonus: parseFloat(e.target.value) || 0}})} placeholder="e.g. 100" className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+          </div>
+          <div>
+            <label className="block text-sm mb-1 text-purple-400">VA Token Mining (Per 24h)</label>
+            <input type="number" value={values.settings?.miningRate ?? 50} onChange={e => setValues({...values, settings: {...values.settings, miningRate: parseFloat(e.target.value) || 0}})} placeholder="e.g. 50" className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+          </div>
+          <div>
+            <label className="block text-sm mb-1 text-gray-400">Min Withdraw Referrals</label>
+            <input type="number" value={values.settings?.minWithdrawRefer ?? 0} onChange={e => setValues({...values, settings: {...values.settings, minWithdrawRefer: parseInt(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+          </div>
         </div>
         <hr className="border-white/10 my-4" />
         <h3 className="font-bold text-lg">Financial Settings</h3>
@@ -1950,10 +1988,7 @@ function AdsRewardsEditor({ onClose, onSave, initialValues }: any) {
             <input type="number" value={values.settings?.maxDeposit ?? 0} onChange={e => setValues({...values, settings: {...values.settings, maxDeposit: parseFloat(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
           </div>
         </div>
-        <div>
-          <label className="block text-sm mb-1 text-gray-400">Min Referrals for Withdraw</label>
-          <input type="number" value={values.settings?.minWithdrawRefer ?? 0} onChange={e => setValues({...values, settings: {...values.settings, minWithdrawRefer: parseInt(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
-        </div>
+        
         <hr className="border-white/10 my-4" />
         <h3 className="font-bold text-lg">Referral Bonus Settings</h3>
         <div className="grid grid-cols-2 gap-4">
@@ -1968,7 +2003,7 @@ function AdsRewardsEditor({ onClose, onSave, initialValues }: any) {
         </div>
       </div>
 
-      <button onClick={() => onSave(values)} className="w-full bg-blue-600 hover:bg-blue-700 font-bold py-3 rounded-xl text-white">Save Changes</button>
+      <button onClick={handleLocalSave} className="w-full bg-blue-600 hover:bg-blue-700 font-bold py-3 rounded-xl text-white">Save Changes</button>
     </div>
   );
 }
