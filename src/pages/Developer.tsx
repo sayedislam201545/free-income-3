@@ -15,15 +15,15 @@ export default function Developer() {
   });
 
   useEffect(() => {
-    const fetchDeveloper = async () => {
-      try {
-        const snap = await getDoc(doc(db, "settings", "developer_profile"));
-        if (snap.exists() && snap.data().name) {
-          setDeveloperData(snap.data());
-        }
-      } catch(e) {}
-    };
-    fetchDeveloper();
+    let unsub = () => {};
+    import("firebase/firestore").then(m => {
+        unsub = m.onSnapshot(m.doc(db, "settings", "developer_profile"), (snap) => {
+            if (snap.exists() && snap.data().name) {
+                setDeveloperData(snap.data());
+            }
+        });
+    });
+    return () => unsub();
   }, []);
 
   return (

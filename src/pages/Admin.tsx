@@ -1353,37 +1353,31 @@ function AdminSettings() {
   const [botSettingData, setBotSettingData] = useState<any>({ botUsername: "", botToken: "", botHostingLink: "", miniAppUrl: "", paymentChannelId: "", othersChannelId: "", imgbbApi: "" });
   const [developerData, setDeveloperData] = useState<any>({ name: "", role: "", whatsapp: "", telegram: "", image: "", description: "" });
   const [supportAgents, setSupportAgents] = useState<any[]>([]);
-  const [vipPlans, setVipPlans] = useState<any[]>([]);
+  
   const [adsRewardsData, setAdsRewardsData] = useState<any>({});
   
   const [adminTab, setAdminTab] = useState<"added" | "add">("added");
   const [editSupportId, setEditSupportId] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const botSnap = await getDoc(doc(db, "settings", "bot_setting"));
-        if (botSnap.exists()) setBotSettingData(botSnap.data());
-
-        const devSnap = await getDoc(doc(db, "settings", "developer_profile"));
-        if (devSnap.exists()) setDeveloperData(devSnap.data());
-
-        const supportSnap = await getDoc(doc(db, "settings", "support"));
-        if (supportSnap.exists() && supportSnap.data().agents) setSupportAgents(supportSnap.data().agents);
-
-        const vipSnap = await getDoc(doc(db, "settings", "vip_plans"));
-        if (vipSnap.exists() && vipSnap.data().plans) setVipPlans(vipSnap.data().plans);
-
-        const adsSnap = await getDoc(doc(db, "settings", "ads_rewards_config"));
-        if (adsSnap.exists()) {
-          setAdsRewardsData(adsSnap.data() || {});
-        }
-      } catch (e) {
-        console.error("Failed to load settings:", e);
-      }
-    };
-    fetchSettings();
-  }, [editing]);
+    let unsubs: any[] = [];
+    import("firebase/firestore").then(m => {
+        unsubs.push(m.onSnapshot(m.doc(db, "settings", "bot_setting"), (snap) => {
+            if (snap.exists()) setBotSettingData(snap.data());
+        }));
+        unsubs.push(m.onSnapshot(m.doc(db, "settings", "developer_profile"), (snap) => {
+            if (snap.exists()) setDeveloperData(snap.data());
+        }));
+        unsubs.push(m.onSnapshot(m.doc(db, "settings", "support"), (snap) => {
+            if (snap.exists() && snap.data().agents) setSupportAgents(snap.data().agents);
+        }));
+        
+        unsubs.push(m.onSnapshot(m.doc(db, "settings", "ads_rewards_config"), (snap) => {
+            if (snap.exists()) setAdsRewardsData(snap.data() || {});
+        }));
+    });
+    return () => unsubs.forEach(unsub => unsub());
+  }, []);
 
   const handleEdit = async (key: string) => {
     setEditing(key);
@@ -1402,8 +1396,7 @@ function AdminSettings() {
           await setDoc(doc(db, "settings", "developer_profile"), developerData, { merge: true });
         } else if (editing === "support") {
           await setDoc(doc(db, "settings", "support"), { agents: supportAgents.filter((a: any) => a.name && a.name.trim() !== "") }, { merge: true });
-        } else if (editing === "vip_plan") {
-          await setDoc(doc(db, "settings", "vip_plans"), { plans: vipPlans.filter((p: any) => (p.title || p.name || "").trim() !== "") }, { merge: true });
+        
         } else if (!["feature_toggles", "ads_rewards_config", "coin_values"].includes(editing)) {
           await setDoc(doc(db, "settings", editing), { content: editContent }, { merge: true });
         }
@@ -1564,9 +1557,9 @@ function AdminSettings() {
           { title: "Developer Profile", desc: "App Owner Info", key: "developer_profile", icon: <User className="w-5 h-5 text-purple-400" /> },
           { title: "Support Management", desc: "Admin Contacts", key: "support", icon: <Settings className="w-5 h-5 text-green-400" /> },
           { title: "VIP Plans", desc: "Manage Subscriptions", key: "vip_plan", icon: <Settings className="w-5 h-5 text-purple-400" /> },
-          { title: "Privacy Policy", desc: "App Policies", key: "privacy_policy", icon: <FileText className="w-5 h-5 text-gray-400" /> },
-          { title: "Terms & Conditions", desc: "App Terms", key: "terms", icon: <FileText className="w-5 h-5 text-gray-400" /> },
-          { title: "About Us", desc: "Company Info", key: "about", icon: <FileText className="w-5 h-5 text-gray-400" /> },
+          
+          
+          
         ].map((section) => (
           <div key={section.key} className="bg-[#151A23] p-5 rounded-2xl border border-white/5 shadow-lg group hover:border-blue-500/30 transition-all">
             <div className="flex items-center space-x-4 mb-4">
@@ -1936,6 +1929,42 @@ function AdsRewardsEditor({ onClose, onSave, initialValues }: any) {
         <div>
           <label className="block text-sm mb-1 text-purple-400">VA Token Mining (Per 24h)</label>
           <input type="number" value={values.settings?.miningRate ?? 50} onChange={e => setValues({...values, settings: {...values.settings, miningRate: parseFloat(e.target.value) || 0}})} placeholder="e.g. 50" className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+        </div>
+        <hr className="border-white/10 my-4" />
+        <h3 className="font-bold text-lg">Financial Settings</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm mb-1 text-gray-400">Min Withdraw</label>
+            <input type="number" value={values.settings?.minWithdraw ?? 0} onChange={e => setValues({...values, settings: {...values.settings, minWithdraw: parseFloat(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+          </div>
+          <div>
+            <label className="block text-sm mb-1 text-gray-400">Max Withdraw</label>
+            <input type="number" value={values.settings?.maxWithdraw ?? 0} onChange={e => setValues({...values, settings: {...values.settings, maxWithdraw: parseFloat(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+          </div>
+          <div>
+            <label className="block text-sm mb-1 text-gray-400">Min Deposit</label>
+            <input type="number" value={values.settings?.minDeposit ?? 0} onChange={e => setValues({...values, settings: {...values.settings, minDeposit: parseFloat(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+          </div>
+          <div>
+            <label className="block text-sm mb-1 text-gray-400">Max Deposit</label>
+            <input type="number" value={values.settings?.maxDeposit ?? 0} onChange={e => setValues({...values, settings: {...values.settings, maxDeposit: parseFloat(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm mb-1 text-gray-400">Min Referrals for Withdraw</label>
+          <input type="number" value={values.settings?.minWithdrawRefer ?? 0} onChange={e => setValues({...values, settings: {...values.settings, minWithdrawRefer: parseInt(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+        </div>
+        <hr className="border-white/10 my-4" />
+        <h3 className="font-bold text-lg">Referral Bonus Settings</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm mb-1 text-gray-400">Referrer Bonus</label>
+            <input type="number" value={values.settings?.userReferBonus ?? 250} onChange={e => setValues({...values, settings: {...values.settings, userReferBonus: parseFloat(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+          </div>
+          <div>
+            <label className="block text-sm mb-1 text-gray-400">New User Bonus</label>
+            <input type="number" value={values.settings?.newUserReferBonus ?? 100} onChange={e => setValues({...values, settings: {...values.settings, newUserReferBonus: parseFloat(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+          </div>
         </div>
       </div>
 

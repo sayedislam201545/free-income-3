@@ -1,36 +1,45 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/pages/Wallet.tsx', 'utf8');
 
-// I need to completely replace from 'const calculateValue =' down to 'return (' just above it.
-// Actually, let's find the position.
+const oldEffect = `  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const methodsSnap = await getDoc(doc(db, 'settings', 'payment_methods'));
+        if (methodsSnap.exists()) {
+          const data = methodsSnap.data();
+          setDepositMethods(data.deposit || []);
+          setWithdrawMethods(data.withdraw || []);
+        }
 
-const regex = /const calculateValue = \([\s\S]*?return \(/;
+        const ratesSnap = await getDoc(doc(db, 'settings', 'coin_values'));
+        if (ratesSnap.exists()) {
+          setCoinRates(ratesSnap.data());
+        }
+      } catch (e) {
+        console.error("Error fetching wallet config", e);
+      }
+    };
+    fetchData();
+  }, []);`;
 
-const newCode = `const calculateValue = (coins: string, method: any) => {
-    const num = parseFloat(coins);
-    if (isNaN(num) || num <= 0) return { value: '0.00', symbol: method?.isCrypto ? '$' : '৳', currency: method?.isCrypto ? 'USD' : 'BDT' };
-    
-    const bdtRate = coinRates?.bdtRate || coinRates?.bKash || 1;
-    const cryptoRate = coinRates?.cryptoRate || 1;
+const newEffect = `  useEffect(() => {
+    let unsubs: any[] = [];
+    import("firebase/firestore").then(m => {
+        unsubs.push(m.onSnapshot(m.doc(db, 'settings', 'payment_methods'), (snap) => {
+            if (snap.exists()) {
+                const data = snap.data();
+                setDepositMethods(data.deposit || []);
+                setWithdrawMethods(data.withdraw || []);
+            }
+        }));
+        unsubs.push(m.onSnapshot(m.doc(db, 'settings', 'coin_values'), (snap) => {
+            if (snap.exists()) {
+                setCoinRates(snap.data());
+            }
+        }));
+    });
+    return () => unsubs.forEach(unsub => unsub());
+  }, []);`;
 
-    if (method?.isCrypto) {
-       return { value: (num * cryptoRate).toFixed(2), symbol: '$', currency: 'USD' };
-    } else {
-       return { value: (num * bdtRate).toFixed(2), symbol: '৳', currency: 'BDT' };
-    }
-  };
-
-  return (`;
-
-code = code.replace(regex, newCode);
-
-const renderOld1 = /{calculateValue\(dwAmount, selectedMethod\.id\)} <span className="text-\[10px\]">{selectedMethod\.name === 'Bkash' \|\| selectedMethod\.name === 'Nagad' \|\| selectedMethod\.name === 'Roket' \? 'BDT' : selectedMethod\.name}<\/span>/g;
-const renderNew1 = `{calculateValue(dwAmount, selectedMethod).symbol}{calculateValue(dwAmount, selectedMethod).value} <span className="text-[10px]">{calculateValue(dwAmount, selectedMethod).currency}</span>`;
-
-code = code.replace(renderOld1, renderNew1);
-
-const fiatAmountRegex = /fiatAmount: calculateValue\(dwAmount, selectedMethod\.id\)/g;
-const fiatAmountNew = `fiatAmount: calculateValue(dwAmount, selectedMethod).value`;
-code = code.replace(fiatAmountRegex, fiatAmountNew);
-
+code = code.replace(oldEffect, newEffect);
 fs.writeFileSync('src/pages/Wallet.tsx', code);

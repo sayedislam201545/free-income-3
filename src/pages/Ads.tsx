@@ -2,7 +2,7 @@ import { useUIStore } from '../store/useUIStore';
 import { Video } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, onSnapshot, query, where, doc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuthStore } from "../store/useAuthStore";
 import { Lock } from "lucide-react";
@@ -23,9 +23,8 @@ export default function Ads() {
   const user = useAuthStore((state) => state.user);
   const [tasks, setTasks] = useState<any[]>(HARDCODED_ADS);
   const [adsBoxes, setAdsBoxes] = useState<any[]>([]);
-  const [adsConfig, setAdsConfig] = useState<any>({ dailyAdsLimit: 50 });
-
   const isVipUser = user?.isVip && user?.vipExpiry && user?.vipExpiry > Date.now();
+  const [adsConfig, setAdsConfig] = useState<any>({ dailyAdsLimit: (isVipUser ? 20 : 10) });
 
   useEffect(() => {
     let unsubConfig = () => {};
@@ -39,9 +38,9 @@ export default function Ads() {
             const data = configSnap.data();
             const specificConfig = isVipUser ? data.vip : data.normal;
             if (specificConfig) {
-               setAdsConfig({ ...data.settings, ...specificConfig, dailyAdsLimit: specificConfig.adsLimit !== undefined ? specificConfig.adsLimit : 50 });
+               setAdsConfig({ ...data.settings, ...specificConfig, dailyAdsLimit: specificConfig.adsLimit !== undefined ? specificConfig.adsLimit : (isVipUser ? 20 : 10) });
             } else {
-               setAdsConfig({ ...data.settings, dailyAdsLimit: 50 });
+               setAdsConfig({ ...data.settings, dailyAdsLimit: (isVipUser ? 20 : 10) });
             }
           }
        });
@@ -90,10 +89,10 @@ export default function Ads() {
       </div>
       
       
-      {adsBoxes.filter(b => b.active && (b.target === "all" || (isVipUser ? b.target === "vip" : b.target === "normal"))).length > 0 && (
+      {adsBoxes.filter(b => b?.active && (b.target === "all" || (isVipUser ? b.target === "vip" : b.target === "normal"))).length > 0 && (
         <div className="mb-8 space-y-4 px-1">
            <h3 className="font-bold text-gray-700 text-lg">Promoted Offers</h3>
-           {adsBoxes.filter(b => b.active && (b.target === "all" || (isVipUser ? b.target === "vip" : b.target === "normal"))).map(b => (
+           {adsBoxes.filter(b => b?.active && (b.target === "all" || (isVipUser ? b.target === "vip" : b.target === "normal"))).map(b => (
              <div key={b.id} onClick={() => { if(b.url) window.open(b.url, '_blank') }} className="bg-white rounded-[24px] overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-shadow relative">
                 {b.photo && <img src={b.photo} alt={b.title} className="w-full h-32 object-cover" />}
                 <div className="p-4">
@@ -110,7 +109,7 @@ export default function Ads() {
           const emoji = AD_EMOJIS[idx % AD_EMOJIS.length];
           const campaignId = task.fbId || task.id;
           let watchedCount = 0;
-          const limit = adsConfig.dailyAdsLimit !== undefined ? adsConfig.dailyAdsLimit : 50;
+          const limit = adsConfig.dailyAdsLimit !== undefined ? adsConfig.dailyAdsLimit : (isVipUser ? 20 : 10);
           if (user && user.adCampaignsWatched && user.adCampaignsWatched[campaignId]) {
              const data = user.adCampaignsWatched[campaignId];
              if (data.lastDate === new Date().toDateString()) {

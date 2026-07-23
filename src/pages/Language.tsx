@@ -1,6 +1,7 @@
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLanguageStore } from "../store/useLanguageStore";
+import { useTranslation } from "react-i18next";
 import PremiumBackButton from "../components/PremiumBackButton";
 
 const languages = [
@@ -30,22 +31,11 @@ export default function Language() {
   const navigate = useNavigate();
   const { language, setLanguage } = useLanguageStore();
 
+  const { i18n } = useTranslation();
   const handleSelectLanguage = (langCode: string, langName: string) => {
     setLanguage(langName);
-    
-    // Set cookies for persistence across reloads
-    document.cookie = `googtrans=/en/${langCode}; path=/;`;
-    if (window.location.hostname !== 'localhost') {
-        document.cookie = `googtrans=/en/${langCode}; path=/; domain=${window.location.hostname};`;
-    }
-
-    // Attempt to change language via the embedded script combo box
-    const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-    if (select) {
-      select.value = langCode;
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-      setTimeout(() => window.location.reload(), 300);
-    }
+    i18n.changeLanguage(langCode);
+    localStorage.setItem('app_language', langCode);
   };
 
   return (

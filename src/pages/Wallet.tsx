@@ -30,25 +30,29 @@ export default function Wallet() {
   const [withdrawMethods, setWithdrawMethods] = useState<any[]>([]);
   const [coinRates, setCoinRates] = useState<Record<string, number>>({});
   
+  const [adsRewardsSettings, setAdsRewardsSettings] = useState<any>({});
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const methodsSnap = await getDoc(doc(db, 'settings', 'payment_methods'));
-        if (methodsSnap.exists()) {
-          const data = methodsSnap.data();
-          setDepositMethods(data.deposit || []);
-          setWithdrawMethods(data.withdraw || []);
-        }
-
-        const ratesSnap = await getDoc(doc(db, 'settings', 'coin_values'));
-        if (ratesSnap.exists()) {
-          setCoinRates(ratesSnap.data());
-        }
-      } catch (e) {
-        console.error("Error fetching wallet config", e);
-      }
-    };
-    fetchData();
+    let unsubs: any[] = [];
+    import("firebase/firestore").then(m => {
+        unsubs.push(m.onSnapshot(m.doc(db, 'settings', 'payment_methods'), (snap) => {
+            if (snap.exists()) {
+                const data = snap.data();
+                setDepositMethods(data.deposit || []);
+                setWithdrawMethods(data.withdraw || []);
+            }
+        }));
+        unsubs.push(m.onSnapshot(m.doc(db, 'settings', 'coin_values'), (snap) => {
+            if (snap.exists()) {
+                setCoinRates(snap.data());
+            }
+        }));
+        unsubs.push(m.onSnapshot(m.doc(db, 'settings', 'ads_rewards_config'), (snap) => {
+            if (snap.exists()) {
+                setAdsRewardsSettings(snap.data()?.settings || {});
+            }
+        }));
+    });
+    return () => unsubs.forEach(unsub => unsub());
   }, []);
 
   // P2P Transfer State
@@ -193,9 +197,32 @@ export default function Wallet() {
     const numAmount = parseFloat(dwAmount);
     if (isNaN(numAmount) || numAmount <= 0) return;
 
-    if (tab === 'withdraw' && (user.vaBalance || 0) < numAmount) {
-      showToast("Insufficient balance for withdrawal.", 'error');
-      return;
+    if (tab === 'withdraw') {
+      if ((user.vaBalance || 0) < numAmount) {
+        showToast("Insufficient balance for withdrawal.", 'error');
+        return;
+      }
+      if (adsRewardsSettings.minWithdraw && numAmount < adsRewardsSettings.minWithdraw) {
+        showToast(`Minimum withdraw is ${adsRewardsSettings.minWithdraw} VA`, 'error');
+        return;
+      }
+      if (adsRewardsSettings.maxWithdraw && numAmount > adsRewardsSettings.maxWithdraw) {
+        showToast(`Maximum withdraw is ${adsRewardsSettings.maxWithdraw} VA`, 'error');
+        return;
+      }
+      if (adsRewardsSettings.minWithdrawRefer && (user.referralCount || 0) < adsRewardsSettings.minWithdrawRefer) {
+        showToast(`You need at least ${adsRewardsSettings.minWithdrawRefer} referrals to withdraw.`, 'error');
+        return;
+      }
+    } else if (tab === 'deposit') {
+      if (adsRewardsSettings.minDeposit && numAmount < adsRewardsSettings.minDeposit) {
+        showToast(`Minimum deposit is ${adsRewardsSettings.minDeposit} VA`, 'error');
+        return;
+      }
+      if (adsRewardsSettings.maxDeposit && numAmount > adsRewardsSettings.maxDeposit) {
+        showToast(`Maximum deposit is ${adsRewardsSettings.maxDeposit} VA`, 'error');
+        return;
+      }
     }
 
     setIsSubmitting(true);

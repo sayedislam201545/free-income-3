@@ -36,15 +36,15 @@ export default function Support() {
   ]);
 
   useEffect(() => {
-    const fetchSupport = async () => {
-      try {
-        const snap = await getDoc(doc(db, "settings", "support"));
-        if (snap.exists() && snap.data().agents) {
-          setSupportAgents(snap.data().agents);
-        }
-      } catch(e) {}
-    };
-    fetchSupport();
+    let unsub = () => {};
+    import("firebase/firestore").then(m => {
+        unsub = m.onSnapshot(m.doc(db, "settings", "support"), (snap) => {
+            if (snap.exists() && snap.data().agents) {
+                setSupportAgents(snap.data().agents);
+            }
+        });
+    });
+    return () => unsub();
   }, []);
 
   const getIcon = (color: string) => {

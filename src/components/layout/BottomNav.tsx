@@ -1,14 +1,16 @@
 import { NavLink } from "react-router-dom";
 import { Home, Trophy, User, ClipboardList, MonitorPlay } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { useTranslation } from "react-i18next";
 
 export default function BottomNav() {
+  const { t } = useTranslation();
   const navItems = [
-    { to: "/task", icon: ClipboardList, label: "Task" },
-    { to: "/ads", icon: MonitorPlay, label: "Ads" },
-    { to: "/", icon: Home, label: "Home" },
-    { to: "/leaderboard", icon: Trophy, label: "Leaderboard" },
-    { to: "/profile", icon: User, label: "Profile" },
+    { to: "/task", icon: ClipboardList, label: t("Tasks") },
+    { to: "/ads", icon: MonitorPlay, label: t("Ads") },
+    { to: "/", icon: Home, label: t("Home") },
+    { to: "/leaderboard", icon: Trophy, label: t("Leaderboard") },
+    { to: "/profile", icon: User, label: t("Profile") },
   ];
 
   return (

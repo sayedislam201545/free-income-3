@@ -186,28 +186,9 @@ export default function App() {
         .color-cycle {
           animation: cycleColors 5s linear infinite;
         }
-        .goog-te-banner-frame {
-            display: none !important;
-        }
-        .goog-text-highlight {
-            background-color: transparent !important;
-            box-shadow: none !important;
-        }
-        #goog-gt-tt, .goog-te-balloon-frame {
-            display: none !important;
-        }
-        body {
-            top: 0px !important;
-            position: static !important;
-        }
-        .goog-tooltip {
-            display: none !important;
-        }
-        iframe.goog-te-banner-frame {
-            display: none !important;
-        }
+        
       `}</style>
-      <div id="google_translate_element" style={{ display: "none" }}></div>
+      
       <GlobalUI />
       <BrowserRouter>
         <ErrorBoundary><Routes>

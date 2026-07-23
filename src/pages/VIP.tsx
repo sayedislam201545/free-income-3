@@ -24,26 +24,32 @@ export default function VIP() {
   } | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const plansSnap = await getDoc(doc(db, "settings", "vip_plans"));
-        if (plansSnap.exists() && plansSnap.data().plans) {
-          setPlans(plansSnap.data().plans);
-        }
-
-        if (user) {
-          const userSnap = await getDoc(doc(db, "users", user.uid));
-          if (userSnap.exists()) {
-            setUserData(userSnap.data());
-          }
-        }
-      } catch (e) {
-        console.error("Error fetching VIP data", e);
-      } finally {
-        setLoading(false);
-      }
+    let unsubPlans = () => {};
+    let unsubUser = () => {};
+    
+    import("firebase/firestore").then(m => {
+       unsubPlans = m.onSnapshot(m.collection(db, "vip_plans"), (snap) => {
+         const arr: any[] = [];
+         snap.forEach(d => arr.push({ id: d.id, ...d.data() }));
+         setPlans(arr);
+         setLoading(false);
+       });
+       
+       if (user) {
+         unsubUser = m.onSnapshot(m.doc(db, "users", user.uid), (userSnap) => {
+           if (userSnap.exists()) {
+             setUserData(userSnap.data());
+           }
+         });
+       } else {
+         setLoading(false);
+       }
+    });
+    
+    return () => {
+      unsubPlans();
+      unsubUser();
     };
-    fetchData();
   }, [user]);
 
   const handleBuyPlan = async (plan: any) => {
