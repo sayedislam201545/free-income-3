@@ -60,14 +60,30 @@ export default function Activity() {
               <div className="flex justify-between items-start">
                 <div>
                   <div className="flex items-center space-x-2">
-                    <p className="font-bold text-gray-800 capitalize">{act.type}</p>
+                    <p className="font-bold text-gray-800 capitalize">{
+                      act.type === 'transfer_out' ? 'Transfer' : 
+                      act.type === 'transfer_in' ? 'Transfer Received' : 
+                      act.type === 'lucky_draw_win' ? 'Lucky Draw Win' : 
+                      act.type === 'lucky_draw_cost' ? 'Lucky Draw Play' : 
+                      act.type === 'daily_checkin' ? 'Daily Check-in' : 
+                      act.type === 'ads_watched' ? 'Ads Watched' : 
+                      act.type === 'earn_va' ? 'Earn VA' : 
+                      act.type === 'Visit Task' ? 'Tasks' : 
+                      act.type === 'vip_plan' ? 'VIP Plan' : 
+                      act.type === 'achievement' ? 'Badges & Achievements' : 
+                      act.type === 'bonus' ? 'Bonus' : 
+                      act.type
+                    }</p>
                     {act.method && <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-600">{act.method}</span>}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">{new Date(act.date).toLocaleString()}</p>
+                  {act.note && <p className="text-xs text-gray-600 mt-1">{act.note}</p>}
                 </div>
                 <div className="text-right">
-                  <p className={`font-bold ${(act.type === "deposit" || act.type === "bonus") ? "text-green-500" : "text-red-500"}`}>
-                    {(act.type === "deposit" || act.type === "bonus") ? "+" : "-"}{formatNumber(act.amount)} VA
+                  <p className={`font-bold ${
+                    ["deposit", "bonus", "refer", "achievement", "daily_checkin", "Visit Task", "ads_watched", "earn_va", "lucky_draw_win", "transfer_in"].includes(act.type) ? "text-green-500" : "text-red-500"
+                  }`}>
+                    {["deposit", "bonus", "refer", "achievement", "daily_checkin", "Visit Task", "ads_watched", "earn_va", "lucky_draw_win", "transfer_in"].includes(act.type) ? "+" : "-"}{formatNumber(act.amount)} VA
                   </p>
                   <div className="flex items-center justify-end space-x-1 mt-1">
                     {getStatusIcon(act.status)}

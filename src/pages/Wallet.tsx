@@ -153,6 +153,20 @@ export default function Wallet() {
           receiverName: receiverName
         });
         
+        // Record transaction for receiver
+        await addDoc(collection(db, 'transactions'), {
+          userId: targetUid,
+          username: receiverName,
+          type: 'transfer_in',
+          method: 'P2P Transfer',
+          amount: numAmount,
+          currency: 'VA',
+          status: 'completed',
+          timestamp: new Date().toISOString(),
+          senderId: user.uid,
+          senderName: user.username
+        });
+        
         // Notify sender
         await addDoc(collection(db, 'notifications'), {
           userId: user.uid,

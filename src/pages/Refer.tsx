@@ -81,6 +81,28 @@ export default function Refer() {
              vaBalance: increment(referrerReward)
           });
           
+          const { addDoc, collection } = await import("firebase/firestore");
+          
+          // Current user (referred)
+          await addDoc(collection(db, 'transactions'), {
+              userId: user!.uid.toString(),
+              type: 'refer',
+              amount: rewardAmount,
+              status: 'completed',
+              createdAt: Date.now(),
+              note: 'Referred by a friend'
+          });
+          
+          // Referrer
+          await addDoc(collection(db, 'transactions'), {
+              userId: refInput,
+              type: 'refer',
+              amount: referrerReward,
+              status: 'completed',
+              createdAt: Date.now(),
+              note: 'Referral Bonus'
+          });
+          
           setRefInput("");
       } catch (e) {
           console.error(e);

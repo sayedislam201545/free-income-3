@@ -56,6 +56,15 @@ export default function Earn() {
               miningStartTime: null,
               miningEndTime: null,
             });
+            const { addDoc, collection } = await import("firebase/firestore");
+            await addDoc(collection(db, 'transactions'), {
+                userId: user.uid.toString(),
+                type: 'earn_va',
+                amount: reward,
+                status: 'completed',
+                createdAt: Date.now(),
+                note: 'Mining Claim'
+            });
             useUIStore.getState().addToast("Claimed " + reward + " VA tokens successfully!");
           }
           

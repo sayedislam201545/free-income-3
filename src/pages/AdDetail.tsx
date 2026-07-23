@@ -134,6 +134,15 @@ export default function AdDetail() {
           },
           vaBalance: (userData.vaBalance || 0) + addedCoins
         });
+        const { addDoc, collection } = await import("firebase/firestore");
+        await addDoc(collection(db, 'transactions'), {
+            userId: auth.currentUser.uid.toString(),
+            type: 'ads_watched',
+            amount: addedCoins,
+            status: 'completed',
+            createdAt: Date.now(),
+            note: 'Ad Watch Reward'
+        });
         
         setDailyWatched(newDaily);
         

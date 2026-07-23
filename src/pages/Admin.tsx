@@ -510,24 +510,53 @@ function AdminSubmissions() {
     }
   };
 
+  const [activeTab, setActiveTab] = useState<"pending" | "approved" | "rejected">("pending");
+  const filteredSubs = submissions.filter(s => (s.status || "pending") === activeTab);
+
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold mb-4">Task Submissions</h2>
+      <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Task Submissions</h2>
+      </div>
+      
+      <div className="flex space-x-2">
+        {["pending", "approved", "rejected"].map((status) => (
+          <button
+            key={status}
+            onClick={() => setActiveTab(status as any)}
+            className={`px-4 py-1.5 rounded-full text-xs font-bold capitalize transition-colors ${activeTab === status ? "bg-white text-[#151A23]" : "bg-white/5 text-gray-400 hover:text-white"}`}
+          >
+            {status}
+          </button>
+        ))}
+      </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {submissions.map((sub) => (
+        {filteredSubs.map((sub) => (
           <div key={sub.id} className="bg-[#151A23] p-4 rounded-xl border border-white/10">
+             <div className="flex justify-between items-start">
+               <div>
+                  <p className="font-bold">{sub.taskTitle || 'Unknown Task'}</p>
+                  <p className="text-sm text-gray-400">User ID: {sub.userId}</p>
+               </div>
+               <span className={`text-xs px-2 py-1 rounded uppercase font-bold ${sub.status === 'approved' ? 'bg-green-500/20 text-green-500' : sub.status === 'rejected' ? 'bg-red-500/20 text-red-500' : 'bg-orange-500/20 text-orange-500'}`}>
+                 {sub.status || 'PENDING'}
+               </span>
+             </div>
             <p className="font-bold">Task: {sub.taskTitle}</p>
             <p className="text-sm text-gray-400">User ID: {sub.userId}</p>
             {sub.proofUrl && (
               <img src={sub.proofUrl} alt="Proof" className="w-full h-32 object-cover mt-2 rounded" />
             )}
-            <div className="mt-4 flex space-x-2">
-              <button onClick={() => handleStatusUpdate(sub.id, "approved", sub.userId, sub.reward || 0)} className="px-3 py-1 bg-green-500/20 text-green-400 rounded hover:bg-green-500 hover:text-white text-sm">Approve</button>
-              <button onClick={() => handleStatusUpdate(sub.id, "rejected", sub.userId, sub.reward || 0)} className="px-3 py-1 bg-red-500/20 text-red-400 rounded hover:bg-red-500 hover:text-white text-sm">Reject</button>
-            </div>
+            {(!sub.status || sub.status === "pending") && (
+              <div className="mt-4 flex space-x-2">
+                <button onClick={() => handleStatusUpdate(sub.id, "approved", sub.userId, sub.reward || 0)} className="flex-1 py-2 bg-green-500/20 text-green-400 font-bold rounded-lg hover:bg-green-500 hover:text-white text-sm transition-colors">Approve</button>
+                <button onClick={() => handleStatusUpdate(sub.id, "rejected", sub.userId, sub.reward || 0)} className="flex-1 py-2 bg-red-500/20 text-red-400 font-bold rounded-lg hover:bg-red-500 hover:text-white text-sm transition-colors">Reject</button>
+              </div>
+            )}
           </div>
         ))}
-        {submissions.length === 0 && <p className="text-gray-400">No submissions found.</p>}
+        {filteredSubs.length === 0 && <p className="text-gray-400 py-8 text-center col-span-full">No {activeTab} submissions found.</p>}
       </div>
     </div>
   );
@@ -1791,9 +1820,20 @@ function AdminRequests() {
                 {filteredReqs.map((req) => (
                   <div key={req.id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
                     <div>
-                      <h4 className="font-bold text-white text-sm">{req.method || 'Unknown Method'}</h4>
-                      <p className="text-xs text-gray-400 mt-1">{req.accountDetails || req.address || 'No details'}</p>
-                      <p className="text-[10px] text-gray-500 mt-1">{new Date(req.timestamp || Date.now()).toLocaleString()}</p>
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-bold text-white text-sm">{req.method || 'Unknown Method'}</h4>
+                        <span className="text-xs bg-white/10 px-2 py-0.5 rounded text-gray-300">{req.username || req.userId}</span>
+                      </div>
+                      
+                      <div className="mt-2 space-y-1 text-xs text-gray-400">
+                        {req.fiatAmount && <p><span className="font-bold text-gray-500">Fiat Amount:</span> {req.fiatAmount}</p>}
+                        {(req.accountDetails || req.address) && <p><span className="font-bold text-gray-500">Address/Details:</span> {req.accountDetails || req.address}</p>}
+                        {req.sender && <p><span className="font-bold text-gray-500">Sender/Account:</span> {req.sender}</p>}
+                        {req.txId && <p><span className="font-bold text-gray-500">TrxID:</span> {req.txId}</p>}
+                        {req.memo && <p><span className="font-bold text-gray-500">Memo/Notes:</span> {req.memo}</p>}
+                      </div>
+                      
+                      <p className="text-[10px] text-gray-500 mt-2">{new Date(req.timestamp || Date.now()).toLocaleString()}</p>
                     </div>
                     <div className="text-right">
                       <div className="font-black text-lg text-white mb-2">{req.amount} VA</div>

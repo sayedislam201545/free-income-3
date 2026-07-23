@@ -46,6 +46,15 @@ export default function Auth() {
              referralCount: increment(1),
              vaBalance: increment(reward)
           });
+          const { addDoc, collection } = await import("firebase/firestore");
+          await addDoc(collection(db, 'transactions'), {
+              userId: code,
+              type: 'refer',
+              amount: reward,
+              status: 'completed',
+              createdAt: Date.now(),
+              note: 'Referral Bonus'
+          });
           return code;
        }
      } catch (e) {

@@ -1,26 +1,26 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/pages/Earn.tsx', 'utf8');
 
-// Find where MINING_REWARD is defined
-// const MINING_REWARD = 500;
-// We need to fetch it from ads_rewards_config, or use a state
-code = code.replace(/const MINING_REWARD = 500;/g, 'const [MINING_REWARD, setMiningReward] = useState(500);');
+const target = `await updateDoc(userRef, {
+              vaBalance: increment(reward),
+              miningStartTime: null,
+              miningEndTime: null,
+            });`;
 
-const effectRegex = /useEffect\(\(\) => \{\n    if \(\!user\) return;\n    const fetchMiningState = async \(\) => \{/;
+const replacement = `await updateDoc(userRef, {
+              vaBalance: increment(reward),
+              miningStartTime: null,
+              miningEndTime: null,
+            });
+            const { addDoc, collection } = await import("firebase/firestore");
+            await addDoc(collection(db, 'transactions'), {
+                userId: user.uid.toString(),
+                type: 'earn_va',
+                amount: reward,
+                status: 'completed',
+                createdAt: Date.now(),
+                note: 'Mining Claim'
+            });`;
 
-const newEffect = `useEffect(() => {
-    if (!user) return;
-    const fetchMiningState = async () => {
-      try {
-        const { doc, getDoc } = await import("firebase/firestore");
-        const configSnap = await getDoc(doc(db, "settings", "ads_rewards_config"));
-        if (configSnap.exists()) {
-           const rate = configSnap.data()?.settings?.miningRate;
-           if (rate) setMiningReward(rate);
-        }
-      } catch (e) {}
-`;
-
-code = code.replace(effectRegex, newEffect);
-
+code = code.replace(target, replacement);
 fs.writeFileSync('src/pages/Earn.tsx', code);

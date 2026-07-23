@@ -56,6 +56,15 @@ export default function Achievements() {
             vaBalance: (userDoc.data()?.vaBalance || 0) + achievement.coin,
             claimedAchievements: [...claimedList, achievement.id],
           });
+          const { addDoc } = await import("firebase/firestore");
+          await addDoc(collection(db, 'transactions'), {
+              userId: user.uid.toString(),
+              type: 'achievement',
+              amount: achievement.coin,
+              status: 'completed',
+              createdAt: Date.now(),
+              note: `Claimed ${achievement.title}`
+          });
 
           playSuccessSound();
           useUIStore.getState().addToast(`Successfully claimed ${achievement.coin} VA!`);

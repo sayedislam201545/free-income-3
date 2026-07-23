@@ -154,6 +154,15 @@ export default function CheckIn() {
               reward
           });
           
+          await addDoc(collection(db, 'transactions'), {
+              userId: user!.uid.toString(),
+              type: 'daily_checkin',
+              amount: reward,
+              status: 'completed',
+              createdAt: Date.now(),
+              note: 'Daily Check-in Reward'
+          });
+          
           
       })();
   }, () => {

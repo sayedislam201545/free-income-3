@@ -1,57 +1,26 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/pages/VIP.tsx', 'utf8');
 
-const oldEffect = `  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const plansSnap = await getDoc(doc(db, "settings", "vip_plans"));
-        if (plansSnap.exists() && plansSnap.data().plans) {
-          setPlans(plansSnap.data().plans);
-        }
+const target = `await updateDoc(doc(db, "users", user.uid), {
+        vaBalance: increment(-plan.coin),
+        isVip: true,
+        vipExpiry: expiryDate.getTime(),
+      });`;
 
-        if (user) {
-          const userSnap = await getDoc(doc(db, "users", user.uid));
-          if (userSnap.exists()) {
-            setUserData(userSnap.data());
-          }
-        }
-      } catch (e) {
-        console.error("Error fetching VIP data", e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [user]);`;
+const replacement = `await updateDoc(doc(db, "users", user.uid), {
+        vaBalance: increment(-plan.coin),
+        isVip: true,
+        vipExpiry: expiryDate.getTime(),
+      });
+      const { addDoc, collection } = await import("firebase/firestore");
+      await addDoc(collection(db, 'transactions'), {
+          userId: user.uid.toString(),
+          type: 'vip_plan',
+          amount: plan.coin,
+          status: 'completed',
+          createdAt: Date.now(),
+          note: \`Purchased \${plan.title}\`
+      });`;
 
-const newEffect = `  useEffect(() => {
-    let unsubPlans = () => {};
-    let unsubUser = () => {};
-    
-    import("firebase/firestore").then(m => {
-       unsubPlans = m.onSnapshot(m.doc(db, "settings", "vip_plans"), (plansSnap) => {
-         if (plansSnap.exists() && plansSnap.data().plans) {
-           setPlans(plansSnap.data().plans);
-         }
-         setLoading(false);
-       });
-       
-       if (user) {
-         unsubUser = m.onSnapshot(m.doc(db, "users", user.uid), (userSnap) => {
-           if (userSnap.exists()) {
-             setUserData(userSnap.data());
-           }
-         });
-       } else {
-         setLoading(false);
-       }
-    });
-    
-    return () => {
-      unsubPlans();
-      unsubUser();
-    };
-  }, [user]);`;
-
-code = code.replace(oldEffect, newEffect);
+code = code.replace(target, replacement);
 fs.writeFileSync('src/pages/VIP.tsx', code);
