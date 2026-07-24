@@ -72,7 +72,7 @@ export default function Ads() {
         setTasks(HARDCODED_ADS);
       }
     }, (error) => {
-      console.warn("Ads fetch error:", error);
+      console.error("SNAPSHOT_ERROR: Ads fetch error:", error);
       setTasks(HARDCODED_ADS);
     });
     return () => { unsubscribe(); unsubConfig(); unsubBoxes(); };

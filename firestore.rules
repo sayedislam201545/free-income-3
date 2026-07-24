@@ -4,8 +4,8 @@ service cloud.firestore {
     
     function isAdmin() {
       return request.auth != null 
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super_admin'];
+         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super_admin'];
     }
     
     function isOwner(userId) {
@@ -14,32 +14,32 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow write: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) || isAdmin() || (request.auth != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['referralCount', 'vaBalance']));
     }
     
     match /transactions/{transactionId} {
-      allow read: if isOwner(resource.data.userId) || isAdmin();
-      allow create: if isOwner(request.resource.data.userId);
+      allow read: if request.auth != null; // Simplified for MVP
+      allow create: if isOwner(request.resource.data.userId) || isAdmin() || (request.auth != null && request.resource.data.type == 'refer');
       allow update, delete: if isAdmin();
     }
     
     match /ads_history/{docId} {
-      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow read: if request.auth != null;
       allow create: if isOwner(request.resource.data.userId);
     }
 
     match /daily_bonus_history/{docId} {
-      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow read: if request.auth != null;
       allow create: if isOwner(request.resource.data.userId);
     }
     
     match /task_completions/{docId} {
-      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow read: if request.auth != null;
       allow create: if isOwner(request.resource.data.userId);
     }
     
     match /task_submissions/{docId} {
-      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow read: if request.auth != null;
       allow create: if isOwner(request.resource.data.userId);
       allow update: if isAdmin();
     }
@@ -66,6 +66,31 @@ service cloud.firestore {
     
     match /announcements/{announcementId} {
       allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /achievements/{docId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /notifications/{docId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /notices/{docId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /task_history/{docId} {
+      allow read: if request.auth != null;
+      allow create: if isOwner(request.resource.data.userId) || isAdmin();
+    }
+
+    match /vip_plans/{docId} {
+      allow read: if request.auth != null;
       allow write: if isAdmin();
     }
   }

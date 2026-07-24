@@ -182,7 +182,7 @@ function AdminTasks() {
         }
       },
       (error) => {
-        console.warn("Tasks admin fetch error:", error);
+        console.error("SNAPSHOT_ERROR: Tasks admin fetch error:", error);
       },
       );
     return () => unsubscribe();
@@ -1516,7 +1516,7 @@ function AdminSettings() {
           </div>
           <div className="flex space-x-2 bg-[#1C2331] p-1.5 rounded-xl mb-6">
             <button onClick={() => setAdminTab("added")} className={`flex-1 py-2 rounded-lg font-bold transition-all ${adminTab === "added" ? "bg-blue-600 text-white" : "text-gray-400"}`}>Support Lists</button>
-            <button onClick={() => { setAdminTab("add"); setEditSupportId(null); setSupportAgents([...supportAgents, { id: Date.now().toString(), name: "", role: "", link: "", avatar: "" }]); setEditSupportId(Date.now().toString()); }} className={`flex-1 py-2 rounded-lg font-bold transition-all ${adminTab === "add" ? "bg-blue-600 text-white" : "text-gray-400"}`}>Add New</button>
+            <button onClick={() => { setAdminTab("add"); setEditSupportId(null); setSupportAgents([...supportAgents, { id: Date.now().toString(), name: "", role: "", link: "", image: "" }]); setEditSupportId(Date.now().toString()); }} className={`flex-1 py-2 rounded-lg font-bold transition-all ${adminTab === "add" ? "bg-blue-600 text-white" : "text-gray-400"}`}>Add New</button>
           </div>
           {adminTab === "added" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1539,6 +1539,7 @@ function AdminSettings() {
                     <div><label className="text-xs text-gray-400">Name</label><input type="text" value={agent.name} onChange={(e) => setSupportAgents(supportAgents.map(a => a.id === agent.id ? {...a, name: e.target.value} : a))} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
                     <div><label className="text-xs text-gray-400">Role</label><input type="text" value={agent.role} onChange={(e) => setSupportAgents(supportAgents.map(a => a.id === agent.id ? {...a, role: e.target.value} : a))} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
                     <div><label className="text-xs text-gray-400">Link (e.g. https://t.me/user)</label><input type="text" value={agent.link} onChange={(e) => setSupportAgents(supportAgents.map(a => a.id === agent.id ? {...a, link: e.target.value} : a))} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" /></div>
+                    <div><label className="text-xs text-gray-400">Photo Link (URL)</label><input type="text" value={agent.image || ''} onChange={(e) => setSupportAgents(supportAgents.map(a => a.id === agent.id ? {...a, image: e.target.value} : a))} className="w-full bg-[#0B0E14] border border-white/10 rounded-xl p-3 text-white" placeholder="https://example.com/photo.png" /></div>
                   </div>
                   <div className="flex space-x-4 mt-6">
                     <button onClick={() => { handleSave(true); setAdminTab("added"); }} className="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl">Save Agent</button>
@@ -1999,13 +2000,11 @@ function AdsRewardsEditor({ onClose, onSave, initialValues }: any) {
             <label className="block text-sm mb-1 text-green-400">Daily Bonus Amount</label>
             <input type="number" value={values.settings?.dailyBonus ?? 100} onChange={e => setValues({...values, settings: {...values.settings, dailyBonus: parseFloat(e.target.value) || 0}})} placeholder="e.g. 100" className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
           </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4">
           <div>
             <label className="block text-sm mb-1 text-purple-400">VA Token Mining (Per 24h)</label>
             <input type="number" value={values.settings?.miningRate ?? 50} onChange={e => setValues({...values, settings: {...values.settings, miningRate: parseFloat(e.target.value) || 0}})} placeholder="e.g. 50" className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
-          </div>
-          <div>
-            <label className="block text-sm mb-1 text-gray-400">Min Withdraw Referrals</label>
-            <input type="number" value={values.settings?.minWithdrawRefer ?? 0} onChange={e => setValues({...values, settings: {...values.settings, minWithdrawRefer: parseInt(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
           </div>
         </div>
         <hr className="border-white/10 my-4" />
@@ -2026,6 +2025,12 @@ function AdsRewardsEditor({ onClose, onSave, initialValues }: any) {
           <div>
             <label className="block text-sm mb-1 text-gray-400">Max Deposit</label>
             <input type="number" value={values.settings?.maxDeposit ?? 0} onChange={e => setValues({...values, settings: {...values.settings, maxDeposit: parseFloat(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 mt-4">
+          <div>
+            <label className="block text-sm mb-1 text-gray-400">Min Withdraw Referrals</label>
+            <input type="number" value={values.settings?.minWithdrawRefer ?? 0} onChange={e => setValues({...values, settings: {...values.settings, minWithdrawRefer: parseInt(e.target.value) || 0}})} className="w-full bg-[#151A23] border border-white/10 p-3 rounded-xl text-white" />
           </div>
         </div>
         

@@ -127,7 +127,7 @@ export default function Task() {
         }
       },
       (error) => {
-        console.warn("Task fetch error:", error);
+        console.error("SNAPSHOT_ERROR: Task fetch error:", error);
         setTasks([]);
       },
     );

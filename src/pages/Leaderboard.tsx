@@ -50,7 +50,7 @@ export default function Leaderboard() {
          }
          setIsLoading(false);
      }, (error) => {
-         console.warn("Leaderboard fetch error:", error);
+         console.error("SNAPSHOT_ERROR: Leaderboard fetch error:", error);
      });
      return () => unsubscribe();
   }, [activeTab]);

@@ -45,7 +45,7 @@ export default function PageViewer() {
                 setContent(`No content is available for ${title} yet.`);
             }
         }, (error) => {
-            console.warn("Page setup error:", error);
+            console.error("SNAPSHOT_ERROR: Page setup error:", error);
             setContent(`Could not load content for ${title}.`);
         });
         return () => unsubscribe();

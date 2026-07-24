@@ -133,6 +133,8 @@ export default function App() {
           });
         }
       });
+    }, (error) => {
+      console.error("SNAPSHOT_ERROR: App.tsx task listener error", error);
     });
 
     return () => unsubscribe();

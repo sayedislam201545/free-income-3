@@ -1,27 +1,23 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAkr5p1RAHUqahMCYQ2RVecmE77UiZ0GyU",
-  authDomain: "jamalpur-65b5f.firebaseapp.com",
-  databaseURL: "https://jamalpur-65b5f-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "jamalpur-65b5f",
-  storageBucket: "jamalpur-65b5f.firebasestorage.app",
-  messagingSenderId: "915414441647",
-  appId: "1:915414441647:web:a1fce9382784a0e903fe5a",
-  measurementId: "G-E9EC4WSH0W"
+  projectId: "striking-burner-6d2jw",
+  appId: "1:288006071395:web:e2ed31630a99cebab10456",
+  apiKey: "AIzaSyAHa05W9fJJhZmx0rl0VbfIhlmar0CNubY",
+  authDomain: "striking-burner-6d2jw.firebaseapp.com",
+  storageBucket: "striking-burner-6d2jw.firebasestorage.app",
+  messagingSenderId: "288006071395"
 };
 
 const app = initializeApp(firebaseConfig);
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
+
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()}),
   experimentalForceLongPolling: true
-});
+}, "ai-studio-71eedf5e-9c7a-4be0-bcfb-aa80182d7219");
+
 export const auth = getAuth(app);
-
-
-
 export const storage = getStorage(app);

@@ -36,6 +36,8 @@ export default function Activity() {
       } else {
         setActivities([]);
       }
+    }, (error) => {
+      console.error("SNAPSHOT_ERROR: Activity.tsx listener error", error);
     });
     return () => unsubscribe();
   }, [user?.uid]);

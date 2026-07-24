@@ -17,6 +17,8 @@ export function useFeatureToggles() {
       if (snap.exists()) {
         setToggles(prev => ({ ...prev, ...snap.data() }));
       }
+    }, (error) => {
+      console.error("SNAPSHOT_ERROR: feature_toggles", error);
     });
     return () => unsub();
   }, []);

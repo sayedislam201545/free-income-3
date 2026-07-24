@@ -99,7 +99,7 @@ export default function Auth() {
               let referredBy = await handleReferral(startParam);
 
               const userRef = doc(db, 'users', user.uid);
-              await setDoc(userRef, {
+              const tgUserData = {
                 uid: user.uid,
                 telegramId: tgUser.id.toString(),
                 fullName: `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim(),
@@ -113,7 +113,19 @@ export default function Auth() {
                 referralCount: 0,
                 referredBy: referredBy,
                 createdAt: new Date().toISOString()
-              });
+              };
+              
+              let attempts = 0;
+              while (attempts < 3) {
+                try {
+                  await setDoc(userRef, tgUserData);
+                  break;
+                } catch (e: any) {
+                  attempts++;
+                  if (attempts >= 3) throw e;
+                  await new Promise(r => setTimeout(r, 1000));
+                }
+              }
             } else {
               throw signInErr;
             }
@@ -121,8 +133,11 @@ export default function Auth() {
         } else {
            setIsBrowser(true);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Telegram Auto-Login Error", err);
+        if (err?.code === 'auth/operation-not-allowed') {
+           setError('Email/Password authentication is disabled in Firebase. Please enable it.');
+        }
         setIsBrowser(true);
       } finally {
         setTgLoading(false);
@@ -151,7 +166,30 @@ export default function Auth() {
 
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        const { getDoc } = await import("firebase/firestore");
+        const userRef = doc(db, 'users', user.uid);
+        const snap = await getDoc(userRef);
+        
+        if (!snap.exists()) {
+            // Re-create broken document
+            const userData = {
+                uid: user.uid,
+                fullName: user.displayName || 'User',
+                username: user.displayName || 'User',
+                phone: '',
+                email: user.email,
+                role: "user", 
+                usdtBalance: 0,
+                vaBalance: 0,
+                currentLevel: 1,
+                totalEarned: 0,
+                referralCount: 0,
+                createdAt: new Date().toISOString()
+            };
+            await setDoc(userRef, userData);
+        }
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
@@ -166,7 +204,7 @@ export default function Auth() {
         // Handle referral
         let referredBy = await handleReferral(inviteCode);
 
-        await setDoc(userRef, {
+        const userData = {
           uid: user.uid,
           fullName,
           username,
@@ -180,7 +218,19 @@ export default function Auth() {
           totalEarned: 0,
           referralCount: 0,
           createdAt: new Date().toISOString()
-        });
+        };
+        
+        let attempts = 0;
+        while (attempts < 3) {
+          try {
+            await setDoc(userRef, userData);
+            break;
+          } catch (e: any) {
+            attempts++;
+            if (attempts >= 3) throw e;
+            await new Promise(r => setTimeout(r, 1000));
+          }
+        }
       }
     } catch (err: any) {
       console.error(err);
@@ -191,6 +241,8 @@ export default function Auth() {
          errorMessage = 'Invalid email or password.';
       } else if (err.code === 'auth/weak-password') {
          errorMessage = 'Password should be at least 6 characters.';
+      } else if (err.code === 'auth/operation-not-allowed') {
+         errorMessage = 'Email/Password login is not enabled in Firebase. Please enable it in Firebase Console > Authentication > Sign-in method.';
       }
       setError(errorMessage);
     } finally {

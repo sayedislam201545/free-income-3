@@ -56,20 +56,22 @@ export const useAuthStore = create<AuthState>((setStore, getStore) => ({
   login: (user) => setStore({ user }),
   logout: () => setStore({ user: null }),
   initAuth: () => {
+    let userUnsub;
     onAuthStateChanged(auth, async (firebaseUser) => {
+      if (userUnsub) {
+        userUnsub();
+        userUnsub = undefined;
+      }
       if (firebaseUser) {
         const userRef = doc(db, 'users', firebaseUser.uid);
-        onSnapshot(userRef, (snapshot) => {
+        userUnsub = onSnapshot(userRef, (snapshot) => {
           if (snapshot.exists()) {
             setStore({ user: snapshot.data() as User, isLoading: false });
           } else {
-            // Document doesn't exist yet (or was deleted).
-            // Auth.tsx handles creating the initial document during registration.
-            // We just wait for the snapshot to trigger again once created.
             setStore({ isLoading: false });
           }
         }, (error) => {
-          console.warn("User fetch error:", error);
+          console.error("SNAPSHOT_ERROR: User fetch error:", error);
           setStore({ user: null, isLoading: false });
         });
       } else {
